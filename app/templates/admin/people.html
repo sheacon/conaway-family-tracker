@@ -3,6 +3,19 @@
 {% block content %}
 <h2>Family Members</h2>
 <p><a href="{{ url_for('admin.family_list') }}" role="button" class="outline">Manage Families</a></p>
+
+<form method="post" action="{{ url_for('admin.new_person') }}">
+  <fieldset role="group">
+    <input type="text" name="name" placeholder="New person's name" required>
+    <select name="family_id">
+      <option value="">No family</option>
+      {% for fam in families %}
+      <option value="{{ fam.id }}">{{ fam.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Add Person</button>
+  </fieldset>
+</form>
 <figure>
   <table>
     <thead>

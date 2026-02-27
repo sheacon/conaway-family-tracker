@@ -11,7 +11,28 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 @login_required
 def people_list():
     people = Person.query.order_by(Person.name).all()
-    return render_template("admin/people.html", people=people)
+    families = Family.query.order_by(Family.sort_order).all()
+    return render_template("admin/people.html", people=people, families=families)
+
+
+@bp.route("/people/new", methods=["POST"])
+@login_required
+def new_person():
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Name is required.", "error")
+        return redirect(url_for("admin.people_list"))
+    if Person.query.filter_by(name=name).first():
+        flash("A person with that name already exists.", "error")
+        return redirect(url_for("admin.people_list"))
+    person = Person(name=name)
+    fam_id = request.form.get("family_id")
+    if fam_id:
+        person.family_id = int(fam_id)
+    db.session.add(person)
+    db.session.commit()
+    flash(f"Added {name}.", "success")
+    return redirect(url_for("admin.edit_person", id=person.id))
 
 
 @bp.route("/people/<int:id>/edit", methods=["GET", "POST"])

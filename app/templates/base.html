@@ -16,7 +16,7 @@
       </ul>
       <ul>
         {% if current_user.is_authenticated %}
-          <li><a href="{{ url_for('trips.trip_list') }}">Trips</a></li>
+          <li><a href="{{ url_for('trips.trip_list') }}">Edit Trips</a></li>
           <li><a href="{{ url_for('trips.new_trip') }}">Add Trip</a></li>
           <li><a href="{{ url_for('admin.people_list') }}">Admin</a></li>
           <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
