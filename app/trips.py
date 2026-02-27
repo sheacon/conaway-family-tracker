@@ -60,6 +60,7 @@ def _people_by_family():
 
 
 @bp.route("/")
+@login_required
 def index():
     today = date.today()
     locations = _current_locations()
