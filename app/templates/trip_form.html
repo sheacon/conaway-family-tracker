@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if trip else "New" }} Trip{% endblock %}
+{% block content %}
+<h2>{{ "Edit" if trip else "New" }} Trip</h2>
+<form method="post">
+  <label for="destination">Destination</label>
+  <fieldset role="group">
+    <input type="text" id="destination" name="destination"
+           value="{{ trip.destination if trip else '' }}" required>
+    <button type="button" id="geocode-btn">Find on Map</button>
+  </fieldset>
+
+  <div class="grid">
+    <div>
+      <label for="start_date">Start Date</label>
+      <input type="date" id="start_date" name="start_date"
+             value="{{ trip.start_date.isoformat() if trip else '' }}" required>
+    </div>
+    <div>
+      <label for="end_date">End Date</label>
+      <input type="date" id="end_date" name="end_date"
+             value="{{ trip.end_date.isoformat() if trip else '' }}" required>
+    </div>
+  </div>
+
+  <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
+
+  <input type="hidden" id="latitude" name="latitude"
+         value="{{ trip.latitude if trip else '' }}">
+  <input type="hidden" id="longitude" name="longitude"
+         value="{{ trip.longitude if trip else '' }}">
+
+  <button type="submit">{{ "Update" if trip else "Create" }} Trip</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const initLat = {{ trip.latitude if trip else 'null' }};
+  const initLng = {{ trip.longitude if trip else 'null' }};
+
+  const map = L.map('preview-map').setView(
+    initLat ? [initLat, initLng] : [39.8283, -98.5795],
+    initLat ? 8 : 3
+  );
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  let marker = initLat ? L.marker([initLat, initLng]).addTo(map) : null;
+
+  function setMarker(lat, lng) {
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng]).addTo(map);
+    map.setView([lat, lng], 8);
+  }
+
+  document.getElementById('geocode-btn').addEventListener('click', async () => {
+    const dest = document.getElementById('destination').value;
+    if (!dest) return;
+    const btn = document.getElementById('geocode-btn');
+    btn.setAttribute('aria-busy', 'true');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}&limit=1`
+      );
+      const data = await res.json();
+      if (data.length) {
+        setMarker(parseFloat(data[0].lat), parseFloat(data[0].lon));
+      } else {
+        alert('Location not found. Try a more specific name.');
+      }
+    } finally {
+      btn.removeAttribute('aria-busy');
+    }
+  });
+
+  map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+</script>
+{% endblock %}

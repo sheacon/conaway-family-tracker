@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}All Trips{% endblock %}
+{% block content %}
+<h2>All Trips</h2>
+{% if trips %}
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Destination</th>
+        <th>Dates</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for trip in trips %}
+      <tr>
+        <td>{{ trip.destination }}</td>
+        <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+        <td>
+          <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>
+          <form method="post" action="{{ url_for('trips.delete_trip', id=trip.id) }}" style="display:inline">
+            <button type="submit" class="outline secondary" onclick="return confirm('Delete this trip?')">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+{% else %}
+<p>No trips yet. <a href="{{ url_for('trips.new_trip') }}">Add one!</a></p>
+{% endif %}
+{% endblock %}

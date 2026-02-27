@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>
+  {% if active %}
+    Mom &amp; Dad are in {{ active.destination }}
+  {% else %}
+    Mom &amp; Dad are at {{ home.label }}
+  {% endif %}
+</h2>
+
+<div id="map" style="height: 400px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
+
+{% if upcoming %}
+<h3>Upcoming Trips</h3>
+<figure>
+  <table>
+    <thead>
+      <tr><th>Destination</th><th>Dates</th></tr>
+    </thead>
+    <tbody>
+      {% for trip in upcoming %}
+      <tr>
+        <td>{{ trip.destination }}</td>
+        <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const lat = {{ active.latitude if active else home.lat }};
+  const lng = {{ active.longitude if active else home.lng }};
+  const label = "{{ active.destination if active else home.label }}";
+
+  const map = L.map('map').setView([lat, lng], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  L.marker([lat, lng]).addTo(map).bindPopup(label).openPopup();
+</script>
+{% endblock %}
