@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 {% if upcoming %}
-<h3>Upcoming Trips</h3>
+<h2>Upcoming Trips</h2>
 <div class="upcoming-scroll">
 <figure>
   <table>
     <thead>
-      <tr><th>Destination</th><th>Who</th><th>Dates</th></tr>
+      <tr><th>Dates</th><th>Who</th><th>Destination</th></tr>
     </thead>
     <tbody>
       {% for trip in upcoming %}
       <tr>
-        <td>{{ trip.destination }}</td>
-        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
         <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
+        <td>{{ trip.destination }}</td>
       </tr>
       {% endfor %}
     </tbody>
