@@ -48,6 +48,17 @@ def _current_locations():
     return locations
 
 
+def _people_by_family():
+    """Return an OrderedDict of family_name -> [Person] for the trip form."""
+    people = Person.query.order_by(Person.name).all()
+    groups = OrderedDict()
+    sorted_people = sorted(people, key=lambda p: (p.family.sort_order if p.family else 999, p.name))
+    for person in sorted_people:
+        group_name = person.family.name if person.family else "Other"
+        groups.setdefault(group_name, []).append(person)
+    return groups
+
+
 @bp.route("/")
 def index():
     today = date.today()
@@ -98,8 +109,8 @@ def new_trip():
         db.session.commit()
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
-    people = Person.query.order_by(Person.name).all()
-    return render_template("trip_form.html", trip=None, people=people)
+    people_by_family = _people_by_family()
+    return render_template("trip_form.html", trip=None, people_by_family=people_by_family)
 
 
 @bp.route("/trips/<int:id>/edit", methods=["GET", "POST"])
@@ -117,8 +128,8 @@ def edit_trip(id):
         db.session.commit()
         flash("Trip updated!", "success")
         return redirect(url_for("trips.trip_list"))
-    people = Person.query.order_by(Person.name).all()
-    return render_template("trip_form.html", trip=trip, people=people)
+    people_by_family = _people_by_family()
+    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family)
 
 
 @bp.route("/trips/<int:id>/delete", methods=["POST"])

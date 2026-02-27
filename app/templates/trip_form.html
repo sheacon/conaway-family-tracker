@@ -25,8 +25,10 @@
 
   <fieldset>
     <legend>Who is going?</legend>
+    {% for family_name, members in people_by_family.items() %}
+    <strong>{{ family_name }}</strong>
     <div class="checkbox-group">
-      {% for person in people %}
+      {% for person in members %}
       <label>
         <input type="checkbox" name="people" value="{{ person.id }}"
                {% if trip and person in trip.people %}checked{% endif %}>
@@ -34,6 +36,7 @@
       </label>
       {% endfor %}
     </div>
+    {% endfor %}
   </fieldset>
 
   <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
