@@ -1,4 +1,4 @@
-/* Minimal overrides for Where Are Family A */
+/* Conaway Family Tracker */
 
 .flash-success {
   --pico-card-background-color: #d4edda;
@@ -28,4 +28,15 @@ table td a[role="button"] {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   margin-right: 0.25rem;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+}
+
+.checkbox-group label {
+  width: auto;
+  margin-bottom: 0;
 }

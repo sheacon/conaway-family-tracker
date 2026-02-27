@@ -23,6 +23,19 @@
     </div>
   </div>
 
+  <fieldset>
+    <legend>Who is going?</legend>
+    <div class="checkbox-group">
+      {% for person in people %}
+      <label>
+        <input type="checkbox" name="people" value="{{ person.id }}"
+               {% if trip and person in trip.people %}checked{% endif %}>
+        {{ person.name }}
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
   <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
 
   <input type="hidden" id="latitude" name="latitude"

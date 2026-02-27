@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ person.name }}{% endblock %}
+{% block content %}
+<h2>Edit Default Location — {{ person.name }}</h2>
+<form method="post">
+  <label for="location_label">Location Name</label>
+  <fieldset role="group">
+    <input type="text" id="location_label" name="location_label"
+           value="{{ person.default_location_label }}" required>
+    <button type="button" id="geocode-btn">Find on Map</button>
+  </fieldset>
+
+  <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
+
+  <input type="hidden" id="latitude" name="latitude"
+         value="{{ person.default_location_lat }}">
+  <input type="hidden" id="longitude" name="longitude"
+         value="{{ person.default_location_lng }}">
+
+  <button type="submit">Save</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const initLat = {{ person.default_location_lat }};
+  const initLng = {{ person.default_location_lng }};
+
+  const map = L.map('preview-map').setView([initLat, initLng], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  let marker = L.marker([initLat, initLng]).addTo(map);
+
+  function setMarker(lat, lng) {
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng]).addTo(map);
+    map.setView([lat, lng], 8);
+  }
+
+  document.getElementById('geocode-btn').addEventListener('click', async () => {
+    const loc = document.getElementById('location_label').value;
+    if (!loc) return;
+    const btn = document.getElementById('geocode-btn');
+    btn.setAttribute('aria-busy', 'true');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&limit=1`
+      );
+      const data = await res.json();
+      if (data.length) {
+        setMarker(parseFloat(data[0].lat), parseFloat(data[0].lon));
+      } else {
+        alert('Location not found. Try a more specific name.');
+      }
+    } finally {
+      btn.removeAttribute('aria-busy');
+    }
+  });
+
+  map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+</script>
+{% endblock %}

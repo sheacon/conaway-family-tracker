@@ -4,35 +4,53 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Trip, Config
+from app.models import Trip, Person
 
 bp = Blueprint("trips", __name__)
 
 
-def _home_location():
-    label = db.session.get(Config, "home_label")
-    lat = db.session.get(Config, "home_lat")
-    lng = db.session.get(Config, "home_lng")
-    return {
-        "label": label.value if label else "Home",
-        "lat": float(lat.value) if lat else 39.8283,
-        "lng": float(lng.value) if lng else -98.5795,
-    }
+def _current_locations():
+    """Return a list of dicts with each person's current location info."""
+    today = date.today()
+    people = Person.query.order_by(Person.name).all()
+    locations = []
+    for person in people:
+        active_trip = (
+            Trip.query.filter(
+                Trip.people.any(id=person.id),
+                Trip.start_date <= today,
+                Trip.end_date >= today,
+            ).first()
+        )
+        if active_trip:
+            locations.append({
+                "name": person.name,
+                "label": active_trip.destination,
+                "lat": active_trip.latitude,
+                "lng": active_trip.longitude,
+                "traveling": True,
+            })
+        else:
+            locations.append({
+                "name": person.name,
+                "label": person.default_location_label,
+                "lat": person.default_location_lat,
+                "lng": person.default_location_lng,
+                "traveling": False,
+            })
+    return locations
 
 
 @bp.route("/")
 def index():
     today = date.today()
-    active = Trip.query.filter(Trip.start_date <= today, Trip.end_date >= today).first()
+    locations = _current_locations()
     upcoming = (
         Trip.query.filter(Trip.start_date > today)
         .order_by(Trip.start_date)
         .all()
     )
-    home = _home_location()
-    return render_template(
-        "index.html", active=active, upcoming=upcoming, home=home
-    )
+    return render_template("index.html", locations=locations, upcoming=upcoming)
 
 
 @bp.route("/trips")
@@ -53,11 +71,15 @@ def new_trip():
             latitude=float(request.form["latitude"]),
             longitude=float(request.form["longitude"]),
         )
+        person_ids = request.form.getlist("people")
+        if person_ids:
+            trip.people = Person.query.filter(Person.id.in_(person_ids)).all()
         db.session.add(trip)
         db.session.commit()
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
-    return render_template("trip_form.html", trip=None)
+    people = Person.query.order_by(Person.name).all()
+    return render_template("trip_form.html", trip=None, people=people)
 
 
 @bp.route("/trips/<int:id>/edit", methods=["GET", "POST"])
@@ -70,10 +92,13 @@ def edit_trip(id):
         trip.end_date = date.fromisoformat(request.form["end_date"])
         trip.latitude = float(request.form["latitude"])
         trip.longitude = float(request.form["longitude"])
+        person_ids = request.form.getlist("people")
+        trip.people = Person.query.filter(Person.id.in_(person_ids)).all() if person_ids else []
         db.session.commit()
         flash("Trip updated!", "success")
         return redirect(url_for("trips.trip_list"))
-    return render_template("trip_form.html", trip=trip)
+    people = Person.query.order_by(Person.name).all()
+    return render_template("trip_form.html", trip=trip, people=people)
 
 
 @bp.route("/trips/<int:id>/delete", methods=["POST"])

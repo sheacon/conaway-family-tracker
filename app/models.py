@@ -2,6 +2,20 @@ from datetime import datetime, date
 
 from app import db
 
+trip_person = db.Table(
+    "trip_person",
+    db.Column("trip_id", db.Integer, db.ForeignKey("trip.id"), primary_key=True),
+    db.Column("person_id", db.Integer, db.ForeignKey("person.id"), primary_key=True),
+)
+
+
+class Person(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    default_location_label = db.Column(db.String(200), nullable=False, default="Home")
+    default_location_lat = db.Column(db.Float, nullable=False, default=39.8283)
+    default_location_lng = db.Column(db.Float, nullable=False, default=-98.5795)
+
 
 class Trip(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,6 +25,7 @@ class Trip(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    people = db.relationship("Person", secondary=trip_person, backref="trips")
 
     @property
     def is_active(self):

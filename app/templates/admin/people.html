@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Admin — Family Members{% endblock %}
+{% block content %}
+<h2>Family Members</h2>
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Default Location</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for person in people %}
+      <tr>
+        <td>{{ person.name }}</td>
+        <td>{{ person.default_location_label }}</td>
+        <td>
+          <a href="{{ url_for('admin.edit_person', id=person.id) }}" role="button" class="outline secondary">Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+{% endblock %}

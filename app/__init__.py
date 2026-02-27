@@ -8,6 +8,11 @@ migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 
+FAMILY_MEMBERS = [
+    "Person A", "Person B", "Person C", "Person D", "Person E",
+    "Person F", "Person G", "Person H", "Person I", "Person J",
+]
+
 
 def create_app():
     app = Flask(__name__)
@@ -20,29 +25,28 @@ def create_app():
     from . import models  # noqa: F401
     from .auth import bp as auth_bp
     from .trips import bp as trips_bp
+    from .admin import bp as admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(trips_bp)
+    app.register_blueprint(admin_bp)
 
-    # Seed default home config
     with app.app_context():
-        _seed_home_config()
+        _seed_people()
 
     return app
 
 
-def _seed_home_config():
+def _seed_people():
     from sqlalchemy import inspect
-    from .models import Config as Cfg
+    from .models import Person
 
-    if not inspect(db.engine).has_table("config"):
+    if not inspect(db.engine).has_table("person"):
         return
 
-    if not db.session.get(Cfg, "home_label"):
-        defaults = [
-            Cfg(key="home_label", value="Home"),
-            Cfg(key="home_lat", value="39.8283"),
-            Cfg(key="home_lng", value="-98.5795"),
-        ]
-        db.session.add_all(defaults)
-        db.session.commit()
+    if Person.query.first() is not None:
+        return
+
+    for name in FAMILY_MEMBERS:
+        db.session.add(Person(name=name))
+    db.session.commit()

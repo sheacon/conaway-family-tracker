@@ -8,6 +8,7 @@
     <thead>
       <tr>
         <th>Destination</th>
+        <th>Who</th>
         <th>Dates</th>
         <th>Actions</th>
       </tr>
@@ -16,6 +17,7 @@
       {% for trip in trips %}
       <tr>
         <td>{{ trip.destination }}</td>
+        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
         <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>
