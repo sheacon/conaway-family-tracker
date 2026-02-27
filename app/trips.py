@@ -96,6 +96,10 @@ def trip_list():
 @login_required
 def new_trip():
     if request.method == "POST":
+        if not request.form.get("latitude") or not request.form.get("longitude"):
+            flash("Please find the destination on the map before submitting.", "error")
+            people_by_family = _people_by_family()
+            return render_template("trip_form.html", trip=None, people_by_family=people_by_family)
         trip = Trip(
             destination=request.form["destination"],
             start_date=date.fromisoformat(request.form["start_date"]),
@@ -119,6 +123,10 @@ def new_trip():
 def edit_trip(id):
     trip = db.get_or_404(Trip, id)
     if request.method == "POST":
+        if not request.form.get("latitude") or not request.form.get("longitude"):
+            flash("Please find the destination on the map before submitting.", "error")
+            people_by_family = _people_by_family()
+            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family)
         trip.destination = request.form["destination"]
         trip.start_date = date.fromisoformat(request.form["start_date"])
         trip.end_date = date.fromisoformat(request.form["end_date"])
