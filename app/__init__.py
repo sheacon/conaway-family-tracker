@@ -82,16 +82,24 @@ def _seed_people():
                 _seed_families(has_color)
         return
 
-    # Fresh seed
+    # Fresh seed — include all NOT NULL columns since raw SQL skips ORM defaults
+    defaults = {
+        "loc": "Home", "lat": 39.8283, "lng": -98.5795,
+    }
     for i, name in enumerate(FAMILY_MEMBERS):
+        params = {"n": name, **defaults}
         if has_color:
+            params["c"] = COLOR_PALETTE[i % len(COLOR_PALETTE)]
             db.session.execute(
-                text("INSERT INTO person (name, color) VALUES (:n, :c)"),
-                {"n": name, "c": COLOR_PALETTE[i % len(COLOR_PALETTE)]},
+                text("INSERT INTO person (name, default_location_label, default_location_lat, default_location_lng, color)"
+                     " VALUES (:n, :loc, :lat, :lng, :c)"),
+                params,
             )
         else:
             db.session.execute(
-                text("INSERT INTO person (name) VALUES (:n)"), {"n": name}
+                text("INSERT INTO person (name, default_location_label, default_location_lat, default_location_lng)"
+                     " VALUES (:n, :loc, :lat, :lng)"),
+                params,
             )
     db.session.commit()
 

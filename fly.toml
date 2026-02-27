@@ -1,4 +1,4 @@
-app = "where-are-mom-dad"
+app = "conaway-family-tracker"
 primary_region = "ord"
 
 [build]
