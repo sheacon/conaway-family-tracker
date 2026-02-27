@@ -7,6 +7,7 @@ from flask_login import login_required
 
 from app import db
 from app.models import Trip, Person, Family
+from app.email import notify_trip_created
 
 bp = Blueprint("trips", __name__)
 
@@ -134,6 +135,7 @@ def new_trip():
             trip.people = Person.query.filter(Person.id.in_(person_ids)).all()
         db.session.add(trip)
         db.session.commit()
+        notify_trip_created(trip)
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()

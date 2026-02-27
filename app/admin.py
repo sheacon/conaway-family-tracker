@@ -26,6 +26,9 @@ def new_person():
         flash("A person with that name already exists.", "error")
         return redirect(url_for("admin.people_list"))
     person = Person(name=name)
+    email = request.form.get("email", "").strip()
+    if email:
+        person.email = email
     fam_id = request.form.get("family_id")
     if fam_id:
         person.family_id = int(fam_id)
@@ -43,6 +46,7 @@ def edit_person(id):
         person.default_location_label = request.form["location_label"]
         person.default_location_lat = float(request.form["latitude"])
         person.default_location_lng = float(request.form["longitude"])
+        person.email = request.form.get("email", "").strip() or None
         person.color = request.form.get("color", person.color)
         fam_id = request.form.get("family_id")
         person.family_id = int(fam_id) if fam_id else None

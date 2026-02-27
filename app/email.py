@@ -1,0 +1,79 @@
+import logging
+
+import resend
+from flask import current_app
+
+from app.models import Person
+
+logger = logging.getLogger(__name__)
+
+
+def _get_recipients():
+    return [p.email for p in Person.query.filter(Person.email.isnot(None)).all()]
+
+
+def _send_email(subject, html_body):
+    api_key = current_app.config.get("RESEND_API_KEY")
+    if not api_key:
+        return
+    recipients = _get_recipients()
+    if not recipients:
+        return
+    resend.api_key = api_key
+    try:
+        resend.Emails.send({
+            "from": current_app.config["RESEND_FROM_EMAIL"],
+            "to": recipients,
+            "subject": subject,
+            "html": html_body,
+        })
+    except Exception:
+        logger.exception("Failed to send email: %s", subject)
+
+
+def _format_people(trip):
+    return ", ".join(p.name for p in trip.people) or "No one assigned"
+
+
+def _format_dates(trip):
+    fmt = "%b %-d, %Y"
+    if trip.start_date == trip.end_date:
+        return trip.start_date.strftime(fmt)
+    return f"{trip.start_date.strftime(fmt)} – {trip.end_date.strftime(fmt)}"
+
+
+def _trip_html(heading, trip):
+    return (
+        f"<h2>{heading}</h2>"
+        f"<p><strong>Destination:</strong> {trip.destination}</p>"
+        f"<p><strong>Who:</strong> {_format_people(trip)}</p>"
+        f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
+    )
+
+
+def notify_trip_created(trip):
+    _send_email(
+        f"New trip: {trip.destination}",
+        _trip_html("New Trip Added", trip),
+    )
+
+
+def notify_trip_starting_soon(trip):
+    _send_email(
+        f"Trip in 3 days: {trip.destination}",
+        _trip_html("Trip Starting Soon", trip),
+    )
+
+
+def notify_trip_started(trip):
+    _send_email(
+        f"Trip starting today: {trip.destination}",
+        _trip_html("Trip Starting Today", trip),
+    )
+
+
+def notify_trip_ended(trip):
+    _send_email(
+        f"Trip ended: {trip.destination}",
+        _trip_html("Trip Ended", trip),
+    )

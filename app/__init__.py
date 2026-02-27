@@ -42,6 +42,9 @@ def create_app():
     app.register_blueprint(trips_bp)
     app.register_blueprint(admin_bp)
 
+    from .cli import send_notifications
+    app.cli.add_command(send_notifications)
+
     with app.app_context():
         _seed_people()
 

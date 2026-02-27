@@ -22,6 +22,7 @@ class Person(db.Model):
     default_location_label = db.Column(db.String(200), nullable=False, default="Home")
     default_location_lat = db.Column(db.Float, nullable=False, default=39.8283)
     default_location_lng = db.Column(db.Float, nullable=False, default=-98.5795)
+    email = db.Column(db.String(254), nullable=True)
     family_id = db.Column(db.Integer, db.ForeignKey("family.id"), nullable=True)
     color = db.Column(db.String(7), nullable=False, default="#3388ff")
 

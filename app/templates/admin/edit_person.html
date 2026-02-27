@@ -11,6 +11,9 @@
     {% endfor %}
   </select>
 
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" value="{{ person.email or '' }}" placeholder="Optional — for trip notifications">
+
   <label for="color">Pin Color</label>
   <input type="color" id="color" name="color" value="{{ person.color }}">
 
