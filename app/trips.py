@@ -40,7 +40,7 @@ def _current_locations():
             .first()
         )
         next_trip_str = (
-            f"{next_trip.destination} ({next_trip.start_date.strftime('%b %-d')})"
+            f"{next_trip.destination} ({next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')})"
             if next_trip else None
         )
         if active_trip:
