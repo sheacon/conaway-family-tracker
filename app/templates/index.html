@@ -28,11 +28,12 @@
 
 <figure>
   <table>
-    {% for family_name, members in family_groups.items() %}
     <thead>
-      <tr><th colspan="2">{{ family_name }}</th></tr>
+      <tr><th>Name</th><th>Current Location</th><th>Next Trip</th></tr>
     </thead>
+    {% for family_name, members in family_groups.items() %}
     <tbody>
+      <tr><th colspan="3">{{ family_name }}</th></tr>
       {% for loc in members %}
       <tr>
         <td>
@@ -40,6 +41,7 @@
           {{ loc.name }}
         </td>
         <td>{{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}</td>
+        <td>{{ loc.next_trip or '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>

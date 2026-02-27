@@ -31,6 +31,18 @@ def _current_locations():
             active_trip = active_trips[0] if now_et.hour < 12 else active_trips[-1]
         else:
             active_trip = active_trips[0] if active_trips else None
+        next_trip = (
+            Trip.query.filter(
+                Trip.people.any(id=person.id),
+                Trip.start_date > today,
+            )
+            .order_by(Trip.start_date)
+            .first()
+        )
+        next_trip_str = (
+            f"{next_trip.destination} ({next_trip.start_date.strftime('%b %-d')})"
+            if next_trip else None
+        )
         if active_trip:
             locations.append({
                 "name": person.name,
@@ -41,6 +53,7 @@ def _current_locations():
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
+                "next_trip": next_trip_str,
             })
         else:
             locations.append({
@@ -52,6 +65,7 @@ def _current_locations():
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
+                "next_trip": next_trip_str,
             })
     return locations
 
