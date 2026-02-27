@@ -6,17 +6,22 @@
 
 <figure>
   <table>
+    {% for family_name, members in family_groups.items() %}
     <thead>
-      <tr><th>Name</th><th>Location</th></tr>
+      <tr><th colspan="2">{{ family_name }}</th></tr>
     </thead>
     <tbody>
-      {% for loc in locations %}
+      {% for loc in members %}
       <tr>
-        <td>{{ loc.name }}</td>
+        <td>
+          <span class="color-dot" style="background: {{ loc.color }};"></span>
+          {{ loc.name }}
+        </td>
         <td>{{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
+    {% endfor %}
   </table>
 </figure>
 
@@ -50,19 +55,48 @@
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // Group people by coordinates (rounded to avoid float mismatch)
+  function makePinSvg(color) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+      <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="12.5" cy="12.5" r="5" fill="#fff" opacity="0.9"/>
+    </svg>`;
+    return 'data:image/svg+xml;base64,' + btoa(svg);
+  }
+
+  // Group by coordinates for offset calculation
   const groups = {};
   locations.forEach(loc => {
     const key = loc.lat.toFixed(4) + ',' + loc.lng.toFixed(4);
-    if (!groups[key]) groups[key] = { lat: loc.lat, lng: loc.lng, names: [] };
-    groups[key].names.push(loc.name + (loc.traveling ? ' (traveling)' : ''));
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(loc);
   });
 
   const bounds = [];
-  Object.values(groups).forEach(g => {
-    const popup = g.names.join('<br>');
-    L.marker([g.lat, g.lng]).addTo(map).bindPopup(popup);
-    bounds.push([g.lat, g.lng]);
+  Object.values(groups).forEach(group => {
+    const n = group.length;
+    group.forEach((loc, i) => {
+      // Pixel offset for co-located people
+      let offsetX = 0, offsetY = 0;
+      if (n > 1) {
+        const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+        const radius = 14;
+        offsetX = Math.cos(angle) * radius;
+        offsetY = Math.sin(angle) * radius;
+      }
+
+      const icon = L.divIcon({
+        className: 'svg-marker',
+        html: `<img src="${makePinSvg(loc.color)}" width="25" height="41">`,
+        iconSize: [25, 41],
+        iconAnchor: [12.5 - offsetX, 41 - offsetY],
+        popupAnchor: [0, -41],
+      });
+
+      const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
+      const status = loc.traveling ? ' <em>(traveling)</em>' : '';
+      marker.bindPopup(`<strong>${loc.name}</strong><br>${loc.label}${status}`);
+      bounds.push([loc.lat, loc.lng]);
+    });
   });
 
   if (bounds.length > 1) {

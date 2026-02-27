@@ -1,9 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Edit {{ person.name }}{% endblock %}
 {% block content %}
-<h2>Edit Default Location — {{ person.name }}</h2>
+<h2>Edit — {{ person.name }}</h2>
 <form method="post">
-  <label for="location_label">Location Name</label>
+  <label for="family_id">Family</label>
+  <select id="family_id" name="family_id">
+    <option value="">— None —</option>
+    {% for fam in families %}
+    <option value="{{ fam.id }}" {% if person.family_id == fam.id %}selected{% endif %}>{{ fam.name }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="color">Pin Color</label>
+  <input type="color" id="color" name="color" value="{{ person.color }}">
+
+  <label for="location_label">Default Location</label>
   <fieldset role="group">
     <input type="text" id="location_label" name="location_label"
            value="{{ person.default_location_label }}" required>

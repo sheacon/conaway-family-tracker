@@ -1,10 +1,11 @@
+from collections import OrderedDict
 from datetime import date
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Trip, Person
+from app.models import Trip, Person, Family
 
 bp = Blueprint("trips", __name__)
 
@@ -29,6 +30,9 @@ def _current_locations():
                 "lat": active_trip.latitude,
                 "lng": active_trip.longitude,
                 "traveling": True,
+                "color": person.color,
+                "family": person.family.name if person.family else None,
+                "family_sort": person.family.sort_order if person.family else 999,
             })
         else:
             locations.append({
@@ -37,6 +41,9 @@ def _current_locations():
                 "lat": person.default_location_lat,
                 "lng": person.default_location_lng,
                 "traveling": False,
+                "color": person.color,
+                "family": person.family.name if person.family else None,
+                "family_sort": person.family.sort_order if person.family else 999,
             })
     return locations
 
@@ -50,7 +57,20 @@ def index():
         .order_by(Trip.start_date)
         .all()
     )
-    return render_template("index.html", locations=locations, upcoming=upcoming)
+
+    # Build family-grouped OrderedDict
+    family_groups = OrderedDict()
+    sorted_locs = sorted(locations, key=lambda l: (l["family_sort"], l["name"]))
+    for loc in sorted_locs:
+        group_name = loc["family"] or "Other"
+        family_groups.setdefault(group_name, []).append(loc)
+
+    return render_template(
+        "index.html",
+        locations=locations,
+        family_groups=family_groups,
+        upcoming=upcoming,
+    )
 
 
 @bp.route("/trips")
