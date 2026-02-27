@@ -1,5 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
+{% if upcoming %}
+<h3>Upcoming Trips</h3>
+<div class="upcoming-scroll">
+<figure>
+  <table>
+    <thead>
+      <tr><th>Destination</th><th>Who</th><th>Dates</th></tr>
+    </thead>
+    <tbody>
+      {% for trip in upcoming %}
+      <tr>
+        <td>{{ trip.destination }}</td>
+        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
+        <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+</div>
+{% endif %}
+
 <h2>Current Locations</h2>
 
 <div id="map" style="height: 400px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
@@ -24,26 +46,6 @@
     {% endfor %}
   </table>
 </figure>
-
-{% if upcoming %}
-<h3>Upcoming Trips</h3>
-<figure>
-  <table>
-    <thead>
-      <tr><th>Destination</th><th>Who</th><th>Dates</th></tr>
-    </thead>
-    <tbody>
-      {% for trip in upcoming %}
-      <tr>
-        <td>{{ trip.destination }}</td>
-        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
-        <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</figure>
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
