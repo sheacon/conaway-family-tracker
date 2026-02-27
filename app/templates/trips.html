@@ -7,18 +7,18 @@
   <table>
     <thead>
       <tr>
-        <th>Destination</th>
-        <th>Who</th>
         <th>Dates</th>
+        <th>Who</th>
+        <th>Destination</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for trip in trips %}
       <tr>
-        <td>{{ trip.destination }}</td>
-        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
         <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+        <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
+        <td>{{ trip.destination }}</td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>
           <form method="post" action="{{ url_for('trips.delete_trip', id=trip.id) }}" style="display:inline">

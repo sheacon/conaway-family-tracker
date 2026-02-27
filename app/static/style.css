@@ -59,6 +59,21 @@ input[type="color"] {
   max-height: 200px;
   overflow-y: auto;
   margin-bottom: 1rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+}
+
+.upcoming-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.upcoming-scroll::-webkit-scrollbar-thumb {
+  background: var(--pico-muted-border-color);
+  border-radius: 4px;
+}
+
+.upcoming-scroll {
+  scrollbar-width: thin;
 }
 
 .upcoming-scroll figure {

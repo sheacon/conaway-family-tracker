@@ -88,7 +88,7 @@ def index():
 @bp.route("/trips")
 @login_required
 def trip_list():
-    trips = Trip.query.order_by(Trip.start_date.desc()).all()
+    trips = Trip.query.order_by(Trip.start_date).all()
     return render_template("trips.html", trips=trips)
 
 
