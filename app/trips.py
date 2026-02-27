@@ -1,5 +1,6 @@
 from collections import OrderedDict
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
@@ -16,13 +17,20 @@ def _current_locations():
     people = Person.query.order_by(Person.name).all()
     locations = []
     for person in people:
-        active_trip = (
+        active_trips = (
             Trip.query.filter(
                 Trip.people.any(id=person.id),
                 Trip.start_date <= today,
                 Trip.end_date >= today,
-            ).first()
+            )
+            .order_by(Trip.start_date)
+            .all()
         )
+        if len(active_trips) > 1:
+            now_et = datetime.now(ZoneInfo("America/New_York"))
+            active_trip = active_trips[0] if now_et.hour < 12 else active_trips[-1]
+        else:
+            active_trip = active_trips[0] if active_trips else None
         if active_trip:
             locations.append({
                 "name": person.name,
