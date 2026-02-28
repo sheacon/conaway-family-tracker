@@ -42,6 +42,12 @@ def _format_dates(trip):
     return f"{trip.start_date.strftime(fmt)} – {trip.end_date.strftime(fmt)}"
 
 
+def _subject(prefix, trip):
+    people = _format_people(trip)
+    dates = _format_dates(trip)
+    return f"{prefix}: {people} – {trip.destination} ({dates})"
+
+
 def _trip_html(heading, trip):
     return (
         f"<h2>{heading}</h2>"
@@ -53,41 +59,41 @@ def _trip_html(heading, trip):
 
 def notify_trip_created(trip):
     _send_email(
-        f"New trip: {trip.destination}",
+        _subject("New trip", trip),
         _trip_html("New Trip Added", trip),
     )
 
 
 def notify_trip_updated(trip):
     _send_email(
-        f"Trip updated: {trip.destination}",
+        _subject("Trip updated", trip),
         _trip_html("Trip Updated", trip),
     )
 
 
 def notify_trip_deleted(trip):
     _send_email(
-        f"Trip cancelled: {trip.destination}",
+        _subject("Trip cancelled", trip),
         _trip_html("Trip Cancelled", trip),
     )
 
 
 def notify_trip_starting_soon(trip):
     _send_email(
-        f"Trip in 3 days: {trip.destination}",
+        _subject("Trip in 3 days", trip),
         _trip_html("Trip Starting Soon", trip),
     )
 
 
 def notify_trip_started(trip):
     _send_email(
-        f"Trip starting today: {trip.destination}",
+        _subject("Trip starting today", trip),
         _trip_html("Trip Starting Today", trip),
     )
 
 
 def notify_trip_ended(trip):
     _send_email(
-        f"Trip ended: {trip.destination}",
+        _subject("Trip ended", trip),
         _trip_html("Trip Ended", trip),
     )
