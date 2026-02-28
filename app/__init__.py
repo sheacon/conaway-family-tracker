@@ -67,6 +67,26 @@ def create_app():
             groups.setdefault(key, []).append(p.name)
         return groups
 
+    @app.template_filter("group_flights")
+    def group_flights(flight_info_list):
+        """Group flight info entries by (outbound, return) pair.
+
+        Returns list of dicts: {"names": [...], "outbound": str|None, "return": str|None}
+        """
+        from collections import OrderedDict
+        groups = OrderedDict()
+        for fi in flight_info_list:
+            key = (fi.outbound_flight or "", fi.return_flight or "")
+            groups.setdefault(key, []).append(fi.person.name)
+        result = []
+        for (outbound, ret), names in groups.items():
+            result.append({
+                "names": names,
+                "outbound": outbound or None,
+                "return": ret or None,
+            })
+        return result
+
     with app.app_context():
         _seed_people()
 

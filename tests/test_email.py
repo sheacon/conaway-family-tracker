@@ -202,6 +202,18 @@ class TestTripHtml:
         assert "Leo" in html
         assert "AF200" in html
 
+    def test_same_flights_grouped_in_email(self, app, make_person, make_trip, make_flight):
+        p1 = make_person(name="Person A")
+        p2 = make_person(name="Person B")
+        t = make_trip(destination="Nashville", people=[p1, p2])
+        make_flight(t, p1, outbound="WN209", ret="WN4630")
+        make_flight(t, p2, outbound="WN209", ret="WN4630")
+        html = _trip_html("Heading", t)
+        assert "Mimsy, Alex" in html
+        assert html.count("WN209") == 2  # link text + href
+        # Should be one <li>, not two
+        assert html.count("<li>") == 1
+
 
 class TestNotifyFunctions:
     @patch("app.email._send_email")

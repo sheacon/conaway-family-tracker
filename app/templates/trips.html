@@ -26,11 +26,11 @@
           {% else %}—{% endif %}
           {% if trip.flight_info %}
             <br><small>
-            {% for fi in trip.flight_info %}
-              {{ fi.person.name }}:
-              {% if fi.outbound_flight %}&#9992; {{ fi.outbound_flight | flight_link }}{% endif %}
-              {% if fi.outbound_flight and fi.return_flight %} / {% endif %}
-              {% if fi.return_flight %}&#9992; {{ fi.return_flight | flight_link }}{% endif %}
+            {% for grp in trip.flight_info | group_flights %}
+              {{ grp.names | join(', ') }}:
+              {% if grp.outbound %}&#9992; {{ grp.outbound | flight_link }}{% endif %}
+              {% if grp.outbound and grp['return'] %} / {% endif %}
+              {% if grp['return'] %}&#9992; {{ grp['return'] | flight_link }}{% endif %}
               {% if not loop.last %}<br>{% endif %}
             {% endfor %}
             </small>
