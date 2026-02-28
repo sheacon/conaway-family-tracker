@@ -57,13 +57,13 @@ def _current_locations():
                     # Same-day trip: before noon show outbound, after noon show return
                     now_et = datetime.now(ZoneInfo("America/New_York"))
                     if now_et.hour < 12 and fi.outbound_flight:
-                        flight = {"number": fi.outbound_flight, "url": TripPersonFlight.flight_url(fi.outbound_flight), "label": "Outbound"}
+                        flight = {"number": fi.outbound_flight, "label": "Outbound"}
                     elif now_et.hour >= 12 and fi.return_flight:
-                        flight = {"number": fi.return_flight, "url": TripPersonFlight.flight_url(fi.return_flight), "label": "Return"}
+                        flight = {"number": fi.return_flight, "label": "Return"}
                 elif today == active_trip.start_date and fi.outbound_flight:
-                    flight = {"number": fi.outbound_flight, "url": TripPersonFlight.flight_url(fi.outbound_flight), "label": "Outbound"}
+                    flight = {"number": fi.outbound_flight, "label": "Outbound"}
                 elif today == active_trip.end_date and fi.return_flight:
-                    flight = {"number": fi.return_flight, "url": TripPersonFlight.flight_url(fi.return_flight), "label": "Return"}
+                    flight = {"number": fi.return_flight, "label": "Return"}
 
             locations.append({
                 "name": person.name,

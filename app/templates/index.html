@@ -65,7 +65,7 @@
         <td>
           {{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}
           {% if loc.flight %}
-            <br><small>&#9992; <a href="{{ loc.flight.url }}" target="_blank">{{ loc.flight.number }}</a> ({{ loc.flight.label }})</small>
+            <br><small>&#9992; {{ loc.flight.number | flight_link }} ({{ loc.flight.label }})</small>
           {% endif %}
         </td>
         <td>

@@ -80,3 +80,28 @@ class TestGroupByFamilyFilter:
         filt = app.jinja_env.filters["group_by_family"]
         result = filt(trip.people)
         assert result == {}
+
+
+class TestFlightLinkFilter:
+    def test_single_flight(self, app):
+        filt = app.jinja_env.filters["flight_link"]
+        result = str(filt("UA100"))
+        assert "flightaware.com/live/flight/UA100" in result
+        assert ">UA100</a>" in result
+
+    def test_comma_separated_flights(self, app):
+        filt = app.jinja_env.filters["flight_link"]
+        result = str(filt("UA100, AA200"))
+        assert "flightaware.com/live/flight/UA100" in result
+        assert "flightaware.com/live/flight/AA200" in result
+        assert ">UA100</a>" in result
+        assert ">AA200</a>" in result
+        assert ", " in result
+
+    def test_empty_string(self, app):
+        filt = app.jinja_env.filters["flight_link"]
+        assert filt("") == ""
+
+    def test_none(self, app):
+        filt = app.jinja_env.filters["flight_link"]
+        assert filt(None) == ""

@@ -523,3 +523,37 @@ class TestFlightData:
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "MidTrip")
         assert loc["flight"] is None
+
+    @freeze_time("2026-03-01")
+    def test_dashboard_multi_leg_outbound(self, app, make_person, make_trip, make_flight):
+        from app.trips import _current_locations
+        p = make_person(name="MultiOut")
+        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), people=[p])
+        make_flight(t, p, outbound="UA100, AA200", ret="AA300")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "MultiOut")
+        assert loc["flight"] is not None
+        assert loc["flight"]["number"] == "UA100, AA200"
+        assert loc["flight"]["label"] == "Outbound"
+        assert "url" not in loc["flight"]
+
+    @patch("app.trips.notify_trip_created")
+    def test_create_trip_with_comma_separated_flights(self, mock_notify, auth_client, make_person):
+        p = make_person(name="CommaFlyer")
+        resp = auth_client.post("/trips/new", data={
+            "destination": "Tokyo",
+            "start_date": "2026-04-01",
+            "end_date": "2026-04-10",
+            "latitude": "35.6762",
+            "longitude": "139.6503",
+            "people": [str(p.id)],
+            f"outbound_flight_{p.id}": "UA100, AA200",
+            f"return_flight_{p.id}": "AA300, UA400",
+        }, follow_redirects=True)
+        assert b"Trip added!" in resp.data
+        from app.models import Trip
+        trip = Trip.query.filter_by(destination="Tokyo").first()
+        fi = trip.flight_for_person(p.id)
+        assert fi.outbound_flight == "UA100, AA200"
+        assert fi.return_flight == "AA300, UA400"

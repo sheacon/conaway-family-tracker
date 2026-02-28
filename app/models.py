@@ -63,8 +63,8 @@ class TripPersonFlight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     trip_id = db.Column(db.Integer, db.ForeignKey("trip.id"), nullable=False)
     person_id = db.Column(db.Integer, db.ForeignKey("person.id"), nullable=False)
-    outbound_flight = db.Column(db.String(20), nullable=True)
-    return_flight = db.Column(db.String(20), nullable=True)
+    outbound_flight = db.Column(db.String(100), nullable=True)
+    return_flight = db.Column(db.String(100), nullable=True)
 
     __table_args__ = (db.UniqueConstraint("trip_id", "person_id"),)
 

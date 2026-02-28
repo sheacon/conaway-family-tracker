@@ -177,6 +177,18 @@ class TestTripHtml:
         html = _trip_html("Heading", t)
         assert "<strong>Flights:</strong>" not in html
 
+    def test_multi_leg_outbound_flights(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="MultiLeg")
+        t = make_trip(destination="Tokyo", people=[p])
+        make_flight(t, p, outbound="UA100, AA200", ret="AA300, UA400")
+        html = _trip_html("Heading", t)
+        assert "flightaware.com/live/flight/UA100" in html
+        assert "flightaware.com/live/flight/AA200" in html
+        assert "flightaware.com/live/flight/AA300" in html
+        assert "flightaware.com/live/flight/UA400" in html
+        assert ">UA100</a>" in html
+        assert ">AA200</a>" in html
+
     def test_includes_multiple_people_flights(self, app, make_person, make_trip, make_flight):
         p1 = make_person(name="Kate")
         p2 = make_person(name="Leo")

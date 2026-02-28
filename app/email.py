@@ -69,11 +69,17 @@ def _trip_html(heading, trip):
         for fi in trip.flight_info:
             parts = []
             if fi.outbound_flight:
-                url = TripPersonFlight.flight_url(fi.outbound_flight)
-                parts.append(f'Outbound: <a href="{url}">{fi.outbound_flight}</a>')
+                links = ", ".join(
+                    f'<a href="{TripPersonFlight.flight_url(n.strip())}">{n.strip()}</a>'
+                    for n in fi.outbound_flight.split(",") if n.strip()
+                )
+                parts.append(f"Outbound: {links}")
             if fi.return_flight:
-                url = TripPersonFlight.flight_url(fi.return_flight)
-                parts.append(f'Return: <a href="{url}">{fi.return_flight}</a>')
+                links = ", ".join(
+                    f'<a href="{TripPersonFlight.flight_url(n.strip())}">{n.strip()}</a>'
+                    for n in fi.return_flight.split(",") if n.strip()
+                )
+                parts.append(f"Return: {links}")
             html += f"<li>{fi.person.name}: {' / '.join(parts)}</li>"
         html += "</ul>"
     html += '<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'

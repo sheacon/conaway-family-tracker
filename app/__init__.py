@@ -51,8 +51,12 @@ def create_app():
             return ""
         from markupsafe import Markup
         from app.models import TripPersonFlight
-        url = TripPersonFlight.flight_url(flight_number)
-        return Markup(f'<a href="{url}" target="_blank">{flight_number}</a>')
+        parts = [n.strip() for n in flight_number.split(",")]
+        links = [
+            f'<a href="{TripPersonFlight.flight_url(n)}" target="_blank">{n}</a>'
+            for n in parts if n
+        ]
+        return Markup(", ".join(links))
 
     @app.template_filter("group_by_family")
     def group_by_family(people):
