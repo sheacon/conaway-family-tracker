@@ -41,8 +41,34 @@ class Trip(db.Model):
     return_flight = db.Column(db.String(100), nullable=True)
     people = db.relationship("Person", secondary=trip_person, backref="trips")
 
+    # IATA (2-letter) → ICAO (3-letter) for US airlines.
+    # FlightAware URLs require ICAO codes.
+    IATA_TO_ICAO = {
+        "AA": "AAL",  # American Airlines
+        "DL": "DAL",  # Delta Air Lines
+        "UA": "UAL",  # United Airlines
+        "WN": "SWA",  # Southwest Airlines
+        "B6": "JBU",  # JetBlue Airways
+        "AS": "ASA",  # Alaska Airlines
+        "NK": "NKS",  # Spirit Airlines
+        "F9": "FFT",  # Frontier Airlines
+        "HA": "HAL",  # Hawaiian Airlines
+        "G4": "AAY",  # Allegiant Air
+        "SY": "SCX",  # Sun Country Airlines
+        "MX": "MXY",  # Breeze Airways
+        "XP": "AVA",  # Avelo Airlines
+    }
+
     @staticmethod
     def flight_url(flight_number: str) -> str:
+        """Build a FlightAware URL, converting IATA airline prefixes to ICAO."""
+        import re
+        m = re.match(r"^([A-Z\d]{2})(\d+)$", flight_number.strip())
+        if m:
+            prefix, num = m.group(1), m.group(2)
+            icao = Trip.IATA_TO_ICAO.get(prefix)
+            if icao:
+                return f"https://flightaware.com/live/flight/{icao}{num}"
         return f"https://flightaware.com/live/flight/{flight_number}"
 
     @property

@@ -179,10 +179,10 @@ class TestTripHtml:
         t = make_trip(destination="Tokyo", people=[p],
                       outbound_flight="UA100, AA200", return_flight="AA300, UA400")
         html = _trip_html("Heading", t)
-        assert "flightaware.com/live/flight/UA100" in html
-        assert "flightaware.com/live/flight/AA200" in html
-        assert "flightaware.com/live/flight/AA300" in html
-        assert "flightaware.com/live/flight/UA400" in html
+        assert "flightaware.com/live/flight/UAL100" in html
+        assert "flightaware.com/live/flight/AAL200" in html
+        assert "flightaware.com/live/flight/AAL300" in html
+        assert "flightaware.com/live/flight/UAL400" in html
         assert ">UA100</a>" in html
         assert ">AA200</a>" in html
 

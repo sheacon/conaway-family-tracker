@@ -155,8 +155,20 @@ class TestTrip:
         assert t.outbound_flight is None
         assert t.return_flight is None
 
-    def test_flight_url(self, app):
-        assert Trip.flight_url("UA123") == "https://flightaware.com/live/flight/UA123"
+    def test_flight_url_iata_converted(self, app):
+        assert Trip.flight_url("UA123") == "https://flightaware.com/live/flight/UAL123"
+        assert Trip.flight_url("DL1462") == "https://flightaware.com/live/flight/DAL1462"
+        assert Trip.flight_url("WN209") == "https://flightaware.com/live/flight/SWA209"
+        assert Trip.flight_url("AA100") == "https://flightaware.com/live/flight/AAL100"
+        assert Trip.flight_url("B6800") == "https://flightaware.com/live/flight/JBU800"
+
+    def test_flight_url_icao_passthrough(self, app):
+        assert Trip.flight_url("UAL123") == "https://flightaware.com/live/flight/UAL123"
+        assert Trip.flight_url("DAL1462") == "https://flightaware.com/live/flight/DAL1462"
+        assert Trip.flight_url("SWA209") == "https://flightaware.com/live/flight/SWA209"
+
+    def test_flight_url_unknown_prefix_passthrough(self, app):
+        assert Trip.flight_url("ZZ999") == "https://flightaware.com/live/flight/ZZ999"
 
 
 class TestConfig:
