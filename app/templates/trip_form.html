@@ -8,28 +8,12 @@
          value="{{ trip.title if trip and trip.title else '' }}"
          placeholder="e.g. Spring Break 2026">
 
-  <label for="destination">Destination</label>
-  <input type="text" id="destination" name="destination"
-         value="{{ trip.destination if trip else '' }}" required>
-  <button type="button" id="geocode-btn" class="outline" style="margin-top: 0.25rem;">Confirm Location</button>
-  <span id="geocode-check" style="color: green; display: none;">&#10003; Location confirmed</span>
-
-  <div class="grid">
-    <div>
-      <label for="start_date">Start Date</label>
-      <input type="date" id="start_date" name="start_date"
-             value="{{ trip.start_date.isoformat() if trip else '' }}" required>
-    </div>
-    <div>
-      <label for="end_date">End Date</label>
-      <input type="date" id="end_date" name="end_date"
-             value="{{ trip.end_date.isoformat() if trip else '' }}" required>
-    </div>
-  </div>
+  <h3>Stops</h3>
+  <div id="stops-container"></div>
+  <button type="button" id="add-stop-btn" class="outline" style="margin-bottom: 1rem;">+ Add Another Stop</button>
 
   <label for="notes">Notes <small>(optional)</small></label>
-  <textarea id="notes" name="notes" rows="3"
-            placeholder="Flight info, hotel, etc.">{{ trip.notes if trip and trip.notes else '' }}</textarea>
+  <textarea id="notes" name="notes" rows="1">{{ trip.notes if trip and trip.notes else '' }}</textarea>
 
   <fieldset>
     <legend>Who is going?</legend>
@@ -54,10 +38,7 @@
 
   <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
 
-  <input type="hidden" id="latitude" name="latitude"
-         value="{{ trip.latitude if trip else '' }}">
-  <input type="hidden" id="longitude" name="longitude"
-         value="{{ trip.longitude if trip else '' }}">
+  <input type="hidden" id="stop_count" name="stop_count" value="1">
 
   <button type="submit">{{ "Update" if trip else "Create" }} Trip</button>
 </form>
@@ -65,62 +46,167 @@
 
 {% block scripts %}
 <script>
-  const initLat = {{ trip.latitude if trip else 'null' }};
-  const initLng = {{ trip.longitude if trip else 'null' }};
+  const stopsData = {{ stops_data | tojson }};
+  const stopsContainer = document.getElementById('stops-container');
+  const stopCountInput = document.getElementById('stop_count');
+  let stopCards = [];
 
-  const map = L.map('preview-map').setView(
-    initLat ? [initLat, initLng] : [39.8283, -98.5795],
-    initLat ? 8 : 3
-  );
+  const map = L.map('preview-map').setView([39.8283, -98.5795], 3);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  let marker = initLat ? L.marker([initLat, initLng]).addTo(map) : null;
+  let stopMarkers = [];
+  let stopPolyline = null;
 
-  const geocodeCheck = document.getElementById('geocode-check');
-  if (initLat) geocodeCheck.style.display = '';
+  function updateStopMarkers() {
+    stopMarkers.forEach(m => map.removeLayer(m));
+    stopMarkers = [];
+    if (stopPolyline) { map.removeLayer(stopPolyline); stopPolyline = null; }
 
-  function setMarker(lat, lng) {
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lng;
-    if (marker) map.removeLayer(marker);
-    marker = L.marker([lat, lng]).addTo(map);
-    map.setView([lat, lng], 8);
-    geocodeCheck.style.display = '';
+    const coords = [];
+    stopCards.forEach((card, i) => {
+      const lat = parseFloat(card.querySelector(`[name="stop_latitude_${i}"]`).value);
+      const lng = parseFloat(card.querySelector(`[name="stop_longitude_${i}"]`).value);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const marker = L.marker([lat, lng]).addTo(map)
+          .bindPopup(`Stop ${i + 1}: ${card.querySelector(`[name="stop_destination_${i}"]`).value}`);
+        stopMarkers.push(marker);
+        coords.push([lat, lng]);
+      }
+    });
+    if (coords.length > 1) {
+      stopPolyline = L.polyline(coords, { color: '#3388ff', dashArray: '10, 10', weight: 2 }).addTo(map);
+    }
+    if (coords.length > 0) {
+      map.fitBounds(coords.length > 1 ? coords : [coords[0], coords[0]], { padding: [40, 40], maxZoom: 8 });
+    }
   }
 
-  document.getElementById('geocode-btn').addEventListener('click', async () => {
-    const dest = document.getElementById('destination').value;
-    if (!dest) return;
-    const btn = document.getElementById('geocode-btn');
-    btn.setAttribute('aria-busy', 'true');
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}&limit=1`
-      );
-      const data = await res.json();
-      if (data.length) {
-        setMarker(parseFloat(data[0].lat), parseFloat(data[0].lon));
-      } else {
-        alert('Location not found. Try a more specific name.');
-      }
-    } finally {
-      btn.removeAttribute('aria-busy');
-    }
-  });
+  function addStop(data) {
+    const i = stopCards.length;
+    const card = document.createElement('div');
+    card.className = 'stop-card';
 
-  map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+    const dest = data ? data.destination : '';
+    const lat = data ? data.latitude : '';
+    const lng = data ? data.longitude : '';
+    const sd = data ? data.start_date : '';
+    const ed = data ? data.end_date : '';
+
+    // Auto-fill start_date from previous stop's end_date
+    let autoStart = sd;
+    if (!autoStart && i > 0) {
+      const prevEnd = stopCards[i - 1].querySelector(`[name="stop_end_date_${i - 1}"]`);
+      if (prevEnd && prevEnd.value) autoStart = prevEnd.value;
+    }
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong class="stop-header">Stop ${i + 1}</strong>
+        <button type="button" class="outline secondary remove-stop" onclick="removeStop(${i})" style="${stopCards.length === 0 && !data ? 'display:none;' : ''}">Remove</button>
+      </div>
+      <label>Destination</label>
+      <input type="text" name="stop_destination_${i}" value="${dest}" required>
+      <button type="button" class="outline geocode-stop-btn" data-index="${i}" style="margin-top: 0.25rem;">Confirm Location</button>
+      <span class="geocode-stop-check" style="color: green; display: ${lat ? 'inline' : 'none'};">&#10003; Location confirmed</span>
+      <div class="grid">
+        <div>
+          <label>Start Date</label>
+          <input type="date" name="stop_start_date_${i}" value="${autoStart}" required>
+        </div>
+        <div>
+          <label>End Date</label>
+          <input type="date" name="stop_end_date_${i}" value="${ed}" required>
+        </div>
+      </div>
+      <input type="hidden" name="stop_latitude_${i}" value="${lat}">
+      <input type="hidden" name="stop_longitude_${i}" value="${lng}">
+    `;
+    if (i > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'route-arrow';
+      arrow.innerHTML = '&#x2193;';
+      stopsContainer.appendChild(arrow);
+    }
+    stopsContainer.appendChild(card);
+    stopCards.push(card);
+    stopCountInput.value = stopCards.length;
+    updateRemoveButtons();
+
+    // Wire up geocode button
+    card.querySelector('.geocode-stop-btn').addEventListener('click', async function() {
+      const idx = parseInt(this.dataset.index);
+      const destInput = card.querySelector(`[name="stop_destination_${idx}"]`);
+      const destVal = destInput.value;
+      if (!destVal) return;
+      this.setAttribute('aria-busy', 'true');
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destVal)}&limit=1`
+        );
+        const results = await res.json();
+        if (results.length) {
+          card.querySelector(`[name="stop_latitude_${idx}"]`).value = parseFloat(results[0].lat);
+          card.querySelector(`[name="stop_longitude_${idx}"]`).value = parseFloat(results[0].lon);
+          card.querySelector('.geocode-stop-check').style.display = '';
+          updateStopMarkers();
+        } else {
+          alert('Location not found. Try a more specific name.');
+        }
+      } finally {
+        this.removeAttribute('aria-busy');
+      }
+    });
+
+    if (lat) updateStopMarkers();
+  }
+
+  function removeStop(index) {
+    // Gather all current stop data
+    const allData = [];
+    stopCards.forEach((card, i) => {
+      allData.push({
+        destination: card.querySelector(`[name="stop_destination_${i}"]`).value,
+        latitude: card.querySelector(`[name="stop_latitude_${i}"]`).value,
+        longitude: card.querySelector(`[name="stop_longitude_${i}"]`).value,
+        start_date: card.querySelector(`[name="stop_start_date_${i}"]`).value,
+        end_date: card.querySelector(`[name="stop_end_date_${i}"]`).value,
+      });
+    });
+    allData.splice(index, 1);
+
+    // Rebuild
+    stopsContainer.innerHTML = '';
+    stopCards = [];
+    allData.forEach(d => addStop(d));
+    updateStopMarkers();
+  }
+
+  function updateRemoveButtons() {
+    const removeBtns = stopsContainer.querySelectorAll('.remove-stop');
+    removeBtns.forEach(btn => {
+      btn.style.display = stopCards.length > 1 ? '' : 'none';
+    });
+  }
+
+  // Initialize stops
+  if (stopsData.length > 0) {
+    stopsData.forEach(d => addStop(d));
+  } else {
+    addStop(null);
+  }
+
+  document.getElementById('add-stop-btn').addEventListener('click', () => addStop(null));
 
   // Flight info logic
   const flightData = {{ flight_data | tojson }};
   const flightFieldset = document.getElementById('flight-fieldset');
   const flightRows = document.getElementById('flight-rows');
-  const flightCache = {};  // cache typed values by person id
+  const flightCache = {};
 
   function updateFlightRows() {
     const checked = document.querySelectorAll('input[name="people"]:checked');
-    // Save current values
     flightRows.querySelectorAll('.flight-row').forEach(row => {
       const pid = row.dataset.personId;
       flightCache[pid] = {

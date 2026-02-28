@@ -37,8 +37,15 @@
           {% endif %}
         </td>
         <td>
-          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>
-          {% else %}{{ trip.destination }}{% endif %}
+          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
+          {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
+          {% if trip.is_multi_stop %}
+            <br><small>
+            {% for stop in trip.stops %}
+              &nbsp;&nbsp;{{ stop.destination }}: {{ stop.start_date.strftime('%b %-d') }}–{{ stop.end_date.strftime('%b %-d') }}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+            </small>
+          {% endif %}
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
         <td>

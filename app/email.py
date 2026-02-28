@@ -59,7 +59,15 @@ def _trip_html(heading, trip):
     html = f"<h2>{heading}</h2>"
     if trip.title:
         html += f"<p><strong>Trip:</strong> {trip.title}</p>"
-    html += f"<p><strong>Destination:</strong> {trip.destination}</p>"
+    if trip.is_multi_stop:
+        html += f"<p><strong>Route:</strong> {trip.destinations_summary}</p>"
+        html += "<ol>"
+        for stop in trip.stops:
+            fmt = "%b %-d"
+            html += f"<li>{stop.destination}: {stop.start_date.strftime(fmt)} – {stop.end_date.strftime(fmt)}</li>"
+        html += "</ol>"
+    else:
+        html += f"<p><strong>Destination:</strong> {trip.destination}</p>"
     html += f"<p><strong>Who:</strong> {_format_people(trip)}</p>"
     html += f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
     if trip.notes:

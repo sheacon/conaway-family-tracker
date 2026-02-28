@@ -9,7 +9,7 @@ import pytest
 
 from app import db as _db
 from app import create_app
-from app.models import Family, Person, Trip, TripPersonFlight
+from app.models import Family, Person, Trip, TripStop, TripPersonFlight
 
 
 @pytest.fixture()
@@ -102,6 +102,32 @@ def make_trip(app):
         _db.session.add(t)
         _db.session.commit()
         return t
+
+    return _make
+
+
+@pytest.fixture()
+def make_stop(app):
+    from datetime import date
+
+    def _make(trip, order=0, destination="Nashville", lat=36.16, lng=-86.78,
+              start_date=None, end_date=None):
+        if start_date is None:
+            start_date = trip.start_date
+        if end_date is None:
+            end_date = trip.end_date
+        s = TripStop(
+            trip_id=trip.id,
+            order=order,
+            destination=destination,
+            latitude=lat,
+            longitude=lng,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        _db.session.add(s)
+        _db.session.commit()
+        return s
 
     return _make
 

@@ -52,6 +52,48 @@ class Trip(db.Model):
     def is_upcoming(self):
         return self.start_date > date.today()
 
+    @property
+    def is_multi_stop(self) -> bool:
+        return len(self.stops) > 1
+
+    @property
+    def destinations_summary(self) -> str:
+        """E.g. 'Nashville → Memphis → Nashville' with consecutive dedup."""
+        if not self.stops:
+            return self.destination
+        names = []
+        for stop in self.stops:
+            if not names or names[-1] != stop.destination:
+                names.append(stop.destination)
+        return " → ".join(names)
+
+    def current_stop(self, for_date: date = None):
+        """Return the TripStop active on for_date, with gap fallback."""
+        if for_date is None:
+            for_date = date.today()
+        if not self.stops:
+            return None
+        for stop in self.stops:
+            if stop.start_date <= for_date <= stop.end_date:
+                return stop
+        # Gap fallback: most recent stop that ended before for_date
+        past = [s for s in self.stops if s.end_date < for_date]
+        if past:
+            return past[-1]
+        return self.stops[0]
+
+    def sync_from_stops(self):
+        """Sync denormalized Trip fields from stops."""
+        if not self.stops:
+            return
+        first = self.stops[0]
+        last = self.stops[-1]
+        self.destination = first.destination
+        self.latitude = first.latitude
+        self.longitude = first.longitude
+        self.start_date = first.start_date
+        self.end_date = last.end_date
+
     def flight_for_person(self, person_id: int):
         for fi in self.flight_info:
             if fi.person_id == person_id:
@@ -74,6 +116,21 @@ class TripPersonFlight(db.Model):
     @staticmethod
     def flight_url(flight_number: str) -> str:
         return f"https://flightaware.com/live/flight/{flight_number}"
+
+
+class TripStop(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    trip_id = db.Column(db.Integer, db.ForeignKey("trip.id"), nullable=False)
+    order = db.Column(db.Integer, nullable=False, default=0)
+    destination = db.Column(db.String(200), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+
+    trip = db.relationship("Trip", backref=db.backref(
+        "stops", cascade="all, delete-orphan", order_by="TripStop.order"
+    ))
 
 
 class Config(db.Model):

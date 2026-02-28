@@ -12,8 +12,8 @@
       {% for trip in upcoming %}
       <tr>
         <td>
-          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>
-          {% else %}{{ trip.destination }}{% endif %}
+          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
+          {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
           <br><small>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</small>
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
@@ -64,6 +64,7 @@
         </td>
         <td>
           {{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}
+          {% if loc.stop_info %}<br><small>{{ loc.stop_info }}</small>{% endif %}
           {% if loc.flight %}
             <br><small>&#9992; {{ loc.flight.number | flight_link }} ({{ loc.flight.label }})</small>
           {% endif %}

@@ -5,6 +5,20 @@ from unittest.mock import patch
 from freezegun import freeze_time
 
 
+def _stop_form_data(destination, start_date, end_date, lat, lng, **extra):
+    """Helper: build form data for a single-stop trip."""
+    data = {
+        "stop_count": "1",
+        "stop_destination_0": destination,
+        "stop_latitude_0": str(lat),
+        "stop_longitude_0": str(lng),
+        "stop_start_date_0": start_date,
+        "stop_end_date_0": end_date,
+    }
+    data.update(extra)
+    return data
+
+
 class TestDashboard:
     def test_empty_state(self, auth_client):
         resp = auth_client.get("/")
@@ -86,7 +100,7 @@ class TestCurrentLocations:
 
     @freeze_time("2026-03-03 15:00:00", tz_offset=0)
     def test_overlapping_trips_before_noon_et(self, app, make_person, make_trip):
-        """10 AM ET (15:00 UTC in Feb/EST) → picks first trip."""
+        """10 AM ET (15:00 UTC in Feb/EST) -> picks first trip."""
         from app.trips import _current_locations
         p = make_person(name="Xena")
         make_trip(destination="Trip1", start_date=date(2026, 3, 1),
@@ -99,7 +113,7 @@ class TestCurrentLocations:
 
     @freeze_time("2026-03-03 19:00:00", tz_offset=0)
     def test_overlapping_trips_after_noon_et(self, app, make_person, make_trip):
-        """2 PM ET (19:00 UTC in Feb/EST) → picks last trip."""
+        """2 PM ET (19:00 UTC in Feb/EST) -> picks last trip."""
         from app.trips import _current_locations
         p = make_person(name="Wendy")
         make_trip(destination="TripA", start_date=date(2026, 3, 1),
@@ -204,75 +218,53 @@ class TestNewTrip:
     @patch("app.trips.notify_trip_created")
     def test_create_trip_success(self, mock_notify, auth_client, make_person):
         p = make_person(name="Traveler")
-        resp = auth_client.post("/trips/new", data={
-            "destination": "Bali",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-10",
-            "latitude": "-8.3405",
-            "longitude": "115.092",
-            "people": [str(p.id)],
-        }, follow_redirects=True)
+        data = _stop_form_data("Bali", "2026-04-01", "2026-04-10", -8.3405, 115.092)
+        data["people"] = [str(p.id)]
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
         mock_notify.assert_called_once()
 
     @patch("app.trips.notify_trip_created")
     def test_create_trip_assigns_people(self, mock_notify, auth_client, make_person):
         p = make_person(name="Assigned")
-        auth_client.post("/trips/new", data={
-            "destination": "Fiji",
-            "start_date": "2026-05-01",
-            "end_date": "2026-05-05",
-            "latitude": "-17.7134",
-            "longitude": "178.065",
-            "people": [str(p.id)],
-        })
+        data = _stop_form_data("Fiji", "2026-05-01", "2026-05-05", -17.7134, 178.065)
+        data["people"] = [str(p.id)]
+        auth_client.post("/trips/new", data=data)
         from app.models import Trip
         trip = Trip.query.filter_by(destination="Fiji").first()
         assert p in trip.people
 
     @patch("app.trips.notify_trip_created")
     def test_create_trip_no_people(self, mock_notify, auth_client):
-        resp = auth_client.post("/trips/new", data={
-            "destination": "Solo Trip",
-            "start_date": "2026-05-01",
-            "end_date": "2026-05-05",
-            "latitude": "10.0",
-            "longitude": "20.0",
-        }, follow_redirects=True)
+        data = _stop_form_data("Solo Trip", "2026-05-01", "2026-05-05", 10.0, 20.0)
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
 
     def test_create_trip_missing_lat_lng(self, auth_client):
         resp = auth_client.post("/trips/new", data={
-            "destination": "Nowhere",
-            "start_date": "2026-05-01",
-            "end_date": "2026-05-05",
+            "stop_count": "1",
+            "stop_destination_0": "Nowhere",
+            "stop_latitude_0": "",
+            "stop_longitude_0": "",
+            "stop_start_date_0": "2026-05-01",
+            "stop_end_date_0": "2026-05-05",
         }, follow_redirects=True)
-        assert b"Please find the destination on the map" in resp.data
+        assert b"confirm the location" in resp.data
 
     @patch("app.trips.notify_trip_created")
     def test_create_trip_flash_message(self, mock_notify, auth_client):
-        resp = auth_client.post("/trips/new", data={
-            "destination": "Flash Test",
-            "start_date": "2026-06-01",
-            "end_date": "2026-06-05",
-            "latitude": "1.0",
-            "longitude": "2.0",
-        }, follow_redirects=True)
+        data = _stop_form_data("Flash Test", "2026-06-01", "2026-06-05", 1.0, 2.0)
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
 
 
 class TestNewTripTitleNotes:
     @patch("app.trips.notify_trip_created")
     def test_create_trip_with_title_and_notes(self, mock_notify, auth_client):
-        resp = auth_client.post("/trips/new", data={
-            "destination": "Hawaii",
-            "title": "Summer Vacation",
-            "notes": "Flight UA123",
-            "start_date": "2026-06-01",
-            "end_date": "2026-06-10",
-            "latitude": "21.3069",
-            "longitude": "-157.8583",
-        }, follow_redirects=True)
+        data = _stop_form_data("Hawaii", "2026-06-01", "2026-06-10", 21.3069, -157.8583)
+        data["title"] = "Summer Vacation"
+        data["notes"] = "Flight UA123"
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
         from app.models import Trip
         trip = Trip.query.filter_by(destination="Hawaii").first()
@@ -281,15 +273,10 @@ class TestNewTripTitleNotes:
 
     @patch("app.trips.notify_trip_created")
     def test_create_trip_empty_title_stored_as_none(self, mock_notify, auth_client):
-        auth_client.post("/trips/new", data={
-            "destination": "Berlin",
-            "title": "",
-            "notes": "",
-            "start_date": "2026-07-01",
-            "end_date": "2026-07-05",
-            "latitude": "52.52",
-            "longitude": "13.405",
-        })
+        data = _stop_form_data("Berlin", "2026-07-01", "2026-07-05", 52.52, 13.405)
+        data["title"] = ""
+        data["notes"] = ""
+        auth_client.post("/trips/new", data=data)
         from app.models import Trip
         trip = Trip.query.filter_by(destination="Berlin").first()
         assert trip.title is None
@@ -318,100 +305,85 @@ class TestNewTripTitleNotes:
 
 class TestEditTrip:
     @patch("app.trips.notify_trip_created")
-    def test_edit_form_renders(self, mock_notify, auth_client, make_trip):
+    def test_edit_form_renders(self, mock_notify, auth_client, make_trip, make_stop):
         t = make_trip(destination="Original")
+        make_stop(t, destination="Original")
         resp = auth_client.get(f"/trips/{t.id}/edit")
         assert resp.status_code == 200
         assert b"Original" in resp.data
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_trip_success(self, mock_notify, auth_client, make_trip):
+    def test_edit_trip_success(self, mock_notify, auth_client, make_trip, make_stop):
         t = make_trip(destination="Old Name")
-        resp = auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "New Name",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-05",
-            "latitude": "10.0",
-            "longitude": "20.0",
-        }, follow_redirects=True)
+        make_stop(t, destination="Old Name")
+        data = _stop_form_data("New Name", "2026-04-01", "2026-04-05", 10.0, 20.0)
+        resp = auth_client.post(f"/trips/{t.id}/edit", data=data, follow_redirects=True)
         assert b"Trip updated!" in resp.data
         mock_notify.assert_called_once()
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_updates_people(self, mock_notify, auth_client, make_trip, make_person):
+    def test_edit_updates_people(self, mock_notify, auth_client, make_trip, make_stop, make_person):
         p1 = make_person(name="First")
         p2 = make_person(name="Second")
         t = make_trip(destination="Crew Trip", people=[p1])
-        auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Crew Trip",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-05",
-            "latitude": "10.0",
-            "longitude": "20.0",
-            "people": [str(p2.id)],
-        })
+        make_stop(t, destination="Crew Trip")
+        data = _stop_form_data("Crew Trip", "2026-04-01", "2026-04-05", 10.0, 20.0)
+        data["people"] = [str(p2.id)]
+        auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
         assert p2 in trip.people
         assert p1 not in trip.people
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_removes_all_people(self, mock_notify, auth_client, make_trip, make_person):
+    def test_edit_removes_all_people(self, mock_notify, auth_client, make_trip, make_stop, make_person):
         p = make_person(name="Removed")
         t = make_trip(destination="Empty Trip", people=[p])
-        auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Empty Trip",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-05",
-            "latitude": "10.0",
-            "longitude": "20.0",
-        })
+        make_stop(t, destination="Empty Trip")
+        data = _stop_form_data("Empty Trip", "2026-04-01", "2026-04-05", 10.0, 20.0)
+        auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
         assert trip.people == []
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_trip_title_and_notes(self, mock_notify, auth_client, make_trip):
+    def test_edit_trip_title_and_notes(self, mock_notify, auth_client, make_trip, make_stop):
         t = make_trip(destination="Paris", title="Old Title", notes="Old notes")
-        auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Paris",
-            "title": "New Title",
-            "notes": "New notes",
-            "start_date": "2026-03-01",
-            "end_date": "2026-03-05",
-            "latitude": "48.8566",
-            "longitude": "2.3522",
-        })
+        make_stop(t, destination="Paris")
+        data = _stop_form_data("Paris", "2026-03-01", "2026-03-05", 48.8566, 2.3522)
+        data["title"] = "New Title"
+        data["notes"] = "New notes"
+        auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
         assert trip.title == "New Title"
         assert trip.notes == "New notes"
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_trip_clear_title_and_notes(self, mock_notify, auth_client, make_trip):
+    def test_edit_trip_clear_title_and_notes(self, mock_notify, auth_client, make_trip, make_stop):
         t = make_trip(destination="Paris", title="Has Title", notes="Has notes")
-        auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Paris",
-            "title": "",
-            "notes": "",
-            "start_date": "2026-03-01",
-            "end_date": "2026-03-05",
-            "latitude": "48.8566",
-            "longitude": "2.3522",
-        })
+        make_stop(t, destination="Paris")
+        data = _stop_form_data("Paris", "2026-03-01", "2026-03-05", 48.8566, 2.3522)
+        data["title"] = ""
+        data["notes"] = ""
+        auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
         assert trip.title is None
         assert trip.notes is None
 
-    def test_edit_missing_lat_lng(self, auth_client, make_trip):
+    def test_edit_missing_lat_lng(self, auth_client, make_trip, make_stop):
         t = make_trip(destination="Bad Edit")
+        make_stop(t, destination="Bad Edit")
         resp = auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Bad Edit",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-05",
+            "stop_count": "1",
+            "stop_destination_0": "Bad Edit",
+            "stop_latitude_0": "",
+            "stop_longitude_0": "",
+            "stop_start_date_0": "2026-04-01",
+            "stop_end_date_0": "2026-04-05",
         }, follow_redirects=True)
-        assert b"Please find the destination on the map" in resp.data
+        assert b"confirm the location" in resp.data
 
     def test_edit_404(self, auth_client):
         resp = auth_client.get("/trips/9999/edit")
@@ -442,16 +414,11 @@ class TestFlightData:
     @patch("app.trips.notify_trip_created")
     def test_create_trip_with_flights(self, mock_notify, auth_client, make_person):
         p = make_person(name="Flyer")
-        resp = auth_client.post("/trips/new", data={
-            "destination": "London",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-10",
-            "latitude": "51.5074",
-            "longitude": "-0.1278",
-            "people": [str(p.id)],
-            f"outbound_flight_{p.id}": "BA100",
-            f"return_flight_{p.id}": "BA101",
-        }, follow_redirects=True)
+        data = _stop_form_data("London", "2026-04-01", "2026-04-10", 51.5074, -0.1278)
+        data["people"] = [str(p.id)]
+        data[f"outbound_flight_{p.id}"] = "BA100"
+        data[f"return_flight_{p.id}"] = "BA101"
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
         from app.models import Trip, TripPersonFlight
         trip = Trip.query.filter_by(destination="London").first()
@@ -460,29 +427,26 @@ class TestFlightData:
         assert fi.return_flight == "BA101"
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_trip_updates_flights(self, mock_notify, auth_client, make_person, make_trip, make_flight):
+    def test_edit_trip_updates_flights(self, mock_notify, auth_client, make_person, make_trip, make_stop, make_flight):
         p = make_person(name="Editor")
         t = make_trip(destination="Rome", people=[p])
+        make_stop(t, destination="Rome")
         make_flight(t, p, outbound="AZ1")
-        auth_client.post(f"/trips/{t.id}/edit", data={
-            "destination": "Rome",
-            "start_date": "2026-03-01",
-            "end_date": "2026-03-05",
-            "latitude": "41.9028",
-            "longitude": "12.4964",
-            "people": [str(p.id)],
-            f"outbound_flight_{p.id}": "AZ2",
-            f"return_flight_{p.id}": "AZ3",
-        })
+        data = _stop_form_data("Rome", "2026-03-01", "2026-03-05", 41.9028, 12.4964)
+        data["people"] = [str(p.id)]
+        data[f"outbound_flight_{p.id}"] = "AZ2"
+        data[f"return_flight_{p.id}"] = "AZ3"
+        auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
         fi = trip.flight_for_person(p.id)
         assert fi.outbound_flight == "AZ2"
         assert fi.return_flight == "AZ3"
 
-    def test_edit_form_prepopulates_flights(self, auth_client, make_person, make_trip, make_flight):
+    def test_edit_form_prepopulates_flights(self, auth_client, make_person, make_trip, make_stop, make_flight):
         p = make_person(name="Preloader")
         t = make_trip(destination="Berlin", people=[p])
+        make_stop(t, destination="Berlin")
         make_flight(t, p, outbound="LH500")
         resp = auth_client.get(f"/trips/{t.id}/edit")
         assert b"LH500" in resp.data
@@ -541,16 +505,11 @@ class TestFlightData:
     @patch("app.trips.notify_trip_created")
     def test_create_trip_with_comma_separated_flights(self, mock_notify, auth_client, make_person):
         p = make_person(name="CommaFlyer")
-        resp = auth_client.post("/trips/new", data={
-            "destination": "Tokyo",
-            "start_date": "2026-04-01",
-            "end_date": "2026-04-10",
-            "latitude": "35.6762",
-            "longitude": "139.6503",
-            "people": [str(p.id)],
-            f"outbound_flight_{p.id}": "UA100, AA200",
-            f"return_flight_{p.id}": "AA300, UA400",
-        }, follow_redirects=True)
+        data = _stop_form_data("Tokyo", "2026-04-01", "2026-04-10", 35.6762, 139.6503)
+        data["people"] = [str(p.id)]
+        data[f"outbound_flight_{p.id}"] = "UA100, AA200"
+        data[f"return_flight_{p.id}"] = "AA300, UA400"
+        resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
         from app.models import Trip
         trip = Trip.query.filter_by(destination="Tokyo").first()

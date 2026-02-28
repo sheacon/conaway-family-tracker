@@ -95,3 +95,24 @@ input[type="color"] {
   padding-left: 0.75rem;
   margin-bottom: 0.5rem;
 }
+
+.stop-card {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  padding: 1rem;
+  margin-bottom: 0;
+}
+
+.stop-card .remove-stop {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.route-arrow {
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--pico-muted-color);
+  line-height: 1;
+  margin: 0.25rem 0;
+}
