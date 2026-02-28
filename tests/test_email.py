@@ -143,6 +143,53 @@ class TestTripHtml:
         html = _trip_html("Heading", t)
         assert "<strong>Notes:</strong>" not in html
 
+    def test_includes_flights_when_set(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Gina")
+        t = make_trip(destination="Tokyo", people=[p])
+        make_flight(t, p, outbound="NH100", ret="NH101")
+        html = _trip_html("Heading", t)
+        assert "<strong>Flights:</strong>" in html
+        assert "Gina" in html
+        assert "NH100" in html
+        assert "NH101" in html
+        assert "flightaware.com/live/flight/NH100" in html
+        assert "flightaware.com/live/flight/NH101" in html
+
+    def test_includes_flights_outbound_only(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Person G")
+        t = make_trip(destination="Berlin", people=[p])
+        make_flight(t, p, outbound="LH400")
+        html = _trip_html("Heading", t)
+        assert "LH400" in html
+        assert "Outbound" in html
+
+    def test_includes_flights_return_only(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Iris")
+        t = make_trip(destination="Madrid", people=[p])
+        make_flight(t, p, ret="IB500")
+        html = _trip_html("Heading", t)
+        assert "IB500" in html
+        assert "Return" in html
+
+    def test_excludes_flights_when_not_set(self, app, make_person, make_trip):
+        p = make_person(name="Jack")
+        t = make_trip(destination="Rome", people=[p])
+        html = _trip_html("Heading", t)
+        assert "<strong>Flights:</strong>" not in html
+
+    def test_includes_multiple_people_flights(self, app, make_person, make_trip, make_flight):
+        p1 = make_person(name="Kate")
+        p2 = make_person(name="Leo")
+        t = make_trip(destination="Paris", people=[p1, p2])
+        make_flight(t, p1, outbound="AF100", ret="AF101")
+        make_flight(t, p2, outbound="AF200")
+        html = _trip_html("Heading", t)
+        assert "Kate" in html
+        assert "AF100" in html
+        assert "AF101" in html
+        assert "Leo" in html
+        assert "AF200" in html
+
 
 class TestNotifyFunctions:
     @patch("app.email._send_email")
