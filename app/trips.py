@@ -40,10 +40,15 @@ def _current_locations():
             .order_by(Trip.start_date)
             .first()
         )
-        next_trip_str = (
-            f"{next_trip.display_name} ({next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')})"
-            if next_trip else None
-        )
+        next_trip_info = None
+        if next_trip:
+            next_trip_info = {
+                "display_name": next_trip.display_name,
+                "destination": next_trip.destination,
+                "title": next_trip.title,
+                "notes": next_trip.notes,
+                "dates": f"{next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')}",
+            }
         if active_trip:
             locations.append({
                 "name": person.name,
@@ -54,7 +59,7 @@ def _current_locations():
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
-                "next_trip": next_trip_str,
+                "next_trip": next_trip_info,
             })
         else:
             locations.append({
@@ -66,7 +71,7 @@ def _current_locations():
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
-                "next_trip": next_trip_str,
+                "next_trip": next_trip_info,
             })
     return locations
 

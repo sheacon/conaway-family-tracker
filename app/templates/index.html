@@ -16,6 +16,7 @@
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>
           {% else %}{{ trip.destination }}{% endif %}
+          {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -44,7 +45,14 @@
           {{ loc.name }}
         </td>
         <td>{{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}</td>
-        <td>{{ loc.next_trip or '—' }}</td>
+        <td>
+          {% if loc.next_trip %}
+            {% if loc.next_trip.title %}{{ loc.next_trip.title }}<br><small>{{ loc.next_trip.destination }}</small>
+            {% else %}{{ loc.next_trip.destination }}{% endif %}
+            <br><small>{{ loc.next_trip.dates }}</small>
+            {% if loc.next_trip.notes %}<br><small><em>{{ loc.next_trip.notes }}</em></small>{% endif %}
+          {% else %}—{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

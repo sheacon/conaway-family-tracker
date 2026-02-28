@@ -32,6 +32,16 @@ class TestDashboard:
         resp = auth_client.get("/")
         assert b"London" in resp.data
 
+    @freeze_time("2026-02-28")
+    def test_upcoming_trips_show_title_and_notes(self, auth_client, make_person, make_trip):
+        p = make_person(name="Eve")
+        make_trip(destination="Paris", title="Spring Break", notes="Hotel Marais",
+                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 15), people=[p])
+        resp = auth_client.get("/")
+        assert b"Spring Break" in resp.data
+        assert b"Paris" in resp.data
+        assert b"Hotel Marais" in resp.data
+
     @freeze_time("2026-04-01")
     def test_past_trips_hidden_from_upcoming(self, auth_client, make_person, make_trip):
         p = make_person(name="Dave")
@@ -108,8 +118,22 @@ class TestCurrentLocations:
                   end_date=date(2026, 4, 5), people=[p])
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "Victor")
-        assert "Future" in loc["next_trip"]
-        assert "Apr" in loc["next_trip"]
+        assert loc["next_trip"]["display_name"] == "Future"
+        assert loc["next_trip"]["destination"] == "Future"
+        assert "Apr" in loc["next_trip"]["dates"]
+
+    @freeze_time("2026-03-03")
+    def test_next_trip_with_title(self, app, make_person, make_trip):
+        from app.trips import _current_locations
+        p = make_person(name="Vera")
+        make_trip(destination="Tokyo", title="Japan Trip", notes="ANA flight",
+                  start_date=date(2026, 4, 1), end_date=date(2026, 4, 5), people=[p])
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Vera")
+        assert loc["next_trip"]["display_name"] == "Japan Trip"
+        assert loc["next_trip"]["destination"] == "Tokyo"
+        assert loc["next_trip"]["title"] == "Japan Trip"
+        assert loc["next_trip"]["notes"] == "ANA flight"
 
     @freeze_time("2026-03-03")
     def test_color_and_family_passthrough(self, app, make_family, make_person):
