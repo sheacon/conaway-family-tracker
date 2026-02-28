@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from app import db
 from app.models import Trip, Person, Family
-from app.email import notify_trip_created
+from app.email import notify_trip_created, notify_trip_updated, notify_trip_deleted
 
 bp = Blueprint("trips", __name__)
 
@@ -159,6 +159,7 @@ def edit_trip(id):
         person_ids = request.form.getlist("people")
         trip.people = Person.query.filter(Person.id.in_(person_ids)).all() if person_ids else []
         db.session.commit()
+        notify_trip_updated(trip)
         flash("Trip updated!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
@@ -169,6 +170,7 @@ def edit_trip(id):
 @login_required
 def delete_trip(id):
     trip = db.get_or_404(Trip, id)
+    notify_trip_deleted(trip)
     db.session.delete(trip)
     db.session.commit()
     flash("Trip deleted.", "success")

@@ -58,6 +58,20 @@ def notify_trip_created(trip):
     )
 
 
+def notify_trip_updated(trip):
+    _send_email(
+        f"Trip updated: {trip.destination}",
+        _trip_html("Trip Updated", trip),
+    )
+
+
+def notify_trip_deleted(trip):
+    _send_email(
+        f"Trip cancelled: {trip.destination}",
+        _trip_html("Trip Cancelled", trip),
+    )
+
+
 def notify_trip_starting_soon(trip):
     _send_email(
         f"Trip in 3 days: {trip.destination}",
