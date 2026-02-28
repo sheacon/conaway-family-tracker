@@ -54,6 +54,7 @@ def _trip_html(heading, trip):
         f"<p><strong>Destination:</strong> {trip.destination}</p>"
         f"<p><strong>Who:</strong> {_format_people(trip)}</p>"
         f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
+        f'<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'
     )
 
 
