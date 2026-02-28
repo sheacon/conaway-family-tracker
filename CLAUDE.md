@@ -21,7 +21,7 @@ flask db upgrade
 # Generate new migration after model changes
 flask db migrate -m "description"
 
-# Send daily email notifications (designed for cron)
+# Send daily email notifications (runs locally for testing)
 flask send-notifications
 
 # Production startup (Docker/Fly.io)
@@ -40,7 +40,7 @@ No test suite exists. No npm/bundler — all frontend dependencies are loaded fr
 - `app/trips.py` — Blueprint: `/` (dashboard with map), `/trips` (list), `/trips/new`, `/trips/<id>/edit`, `/trips/<id>/delete`
 - `app/admin.py` — Blueprint at `/admin`: CRUD for people and families
 - `app/email.py` — Resend API email helpers for trip notifications
-- `app/cli.py` — `flask send-notifications` CLI command for daily trip start/end emails
+- `app/cli.py` — `flask send-notifications` CLI command for trip start/end emails (scheduled via GitHub Actions)
 - `app/templates/` — Jinja2 templates using Pico CSS v2
 - `app/static/style.css` — Custom styles and map styling
 - `migrations/` — Alembic migration files managed by Flask-Migrate
@@ -53,6 +53,7 @@ No test suite exists. No npm/bundler — all frontend dependencies are loaded fr
 - **Map pins**: Custom SVG pin icons with per-person colors; co-located people get pixel-offset pins
 - **Geocoding**: Client-side Nominatim (OpenStreetMap) via fetch in trip form
 - **Seeding**: `_seed_people()` in `app/__init__.py` auto-seeds family members using raw SQL on first run
+- **Scheduled notifications**: GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs `flask send-notifications` daily at 8 AM ET. It wakes the Fly.io machine via HTTP (since `auto_stop_machines` is enabled), then SSHes in to run the command. Requires an org-scoped `FLY_API_TOKEN` GitHub secret (deploy tokens lack SSH access)
 
 ## Environment Variables
 
