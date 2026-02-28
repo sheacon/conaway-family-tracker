@@ -63,14 +63,70 @@ Dockerfile         # Python 3.14-slim container
 fly.toml           # Fly.io deployment config
 ```
 
-## Deployment
+## Deployment (Fly.io)
 
 The app runs on Fly.io (`ord` region) with a persistent SQLite volume mounted at `/data`. Auto-stop is enabled to save resources — the machine starts on demand when a request arrives.
+
+### Initial Setup
+
+```bash
+# Install the Fly CLI (https://fly.io/docs/flyctl/install/)
+# Then authenticate
+fly auth login
+
+# Launch the app (creates the app and volume on first run)
+fly launch
+
+# Create the persistent volume for SQLite
+fly volumes create data --region ord --size 1
+```
+
+### Set Secrets
+
+Production secrets are set via `fly secrets` (not in `fly.toml`):
+
+```bash
+fly secrets set SECRET_KEY="<generate-a-strong-random-key>"
+fly secrets set APP_PASSWORD="<your-family-password>"
+fly secrets set RESEND_API_KEY="<your-resend-api-key>"
+fly secrets set RESEND_FROM_EMAIL="Your Name <notifications@yourdomain.com>"
+```
+
+`DATABASE_URL` is already configured in `fly.toml` to point at the persistent volume (`sqlite:////data/app.db`).
+
+### Deploy
 
 ```bash
 fly deploy
 ```
 
+Migrations run automatically on startup (`flask db upgrade` in the Dockerfile `CMD`).
+
+### Useful Commands
+
+```bash
+# View logs
+fly logs
+
+# SSH into the running machine
+fly ssh console
+
+# Open the app in your browser
+fly open
+
+# Check app status
+fly status
+```
+
 ### Scheduled Notifications
 
-A GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs daily at 8 AM ET. It wakes the Fly.io machine via HTTP, then SSHes in to run `flask send-notifications`. Requires an org-scoped `FLY_API_TOKEN` GitHub secret.
+A GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs daily at 8 AM ET. It wakes the Fly.io machine via HTTP, then SSHes in to run `flask send-notifications`.
+
+To set this up:
+
+1. Generate an org-scoped Fly API token (deploy tokens lack SSH access):
+   ```bash
+   fly tokens create org
+   ```
+2. Add the token as a GitHub repository secret named `FLY_API_TOKEN`
+3. The workflow can also be triggered manually from the Actions tab
