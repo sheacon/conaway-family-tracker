@@ -9,7 +9,7 @@ import pytest
 
 from app import db as _db
 from app import create_app
-from app.models import Family, Person, Trip
+from app.models import Family, Person, Trip, TripPersonFlight
 
 
 @pytest.fixture()
@@ -102,5 +102,19 @@ def make_trip(app):
         _db.session.add(t)
         _db.session.commit()
         return t
+
+    return _make
+
+
+@pytest.fixture()
+def make_flight(app):
+    def _make(trip, person, outbound=None, ret=None):
+        f = TripPersonFlight(
+            trip_id=trip.id, person_id=person.id,
+            outbound_flight=outbound, return_flight=ret,
+        )
+        _db.session.add(f)
+        _db.session.commit()
+        return f
 
     return _make

@@ -46,6 +46,11 @@
     {% endfor %}
   </fieldset>
 
+  <fieldset id="flight-fieldset" style="display: none;">
+    <legend>Flight Info <small>(optional)</small></legend>
+    <div id="flight-rows"></div>
+  </fieldset>
+
   <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
 
   <input type="hidden" id="latitude" name="latitude"
@@ -101,5 +106,54 @@
   });
 
   map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+
+  // Flight info logic
+  const flightData = {{ flight_data | tojson }};
+  const flightFieldset = document.getElementById('flight-fieldset');
+  const flightRows = document.getElementById('flight-rows');
+  const flightCache = {};  // cache typed values by person id
+
+  function updateFlightRows() {
+    const checked = document.querySelectorAll('input[name="people"]:checked');
+    // Save current values
+    flightRows.querySelectorAll('.flight-row').forEach(row => {
+      const pid = row.dataset.personId;
+      flightCache[pid] = {
+        outbound: row.querySelector(`[name="outbound_flight_${pid}"]`).value,
+        "return": row.querySelector(`[name="return_flight_${pid}"]`).value,
+      };
+    });
+    flightRows.innerHTML = '';
+    if (checked.length === 0) {
+      flightFieldset.style.display = 'none';
+      return;
+    }
+    flightFieldset.style.display = '';
+    checked.forEach(cb => {
+      const pid = cb.value;
+      const name = cb.parentElement.textContent.trim();
+      const saved = flightCache[pid] || flightData[pid] || {};
+      const row = document.createElement('div');
+      row.className = 'flight-row';
+      row.dataset.personId = pid;
+      row.innerHTML = `
+        <strong>${name}</strong>
+        <div class="grid">
+          <div>
+            <input type="text" name="outbound_flight_${pid}" placeholder="Outbound flight" value="${saved.outbound || ''}">
+          </div>
+          <div>
+            <input type="text" name="return_flight_${pid}" placeholder="Return flight" value="${saved['return'] || ''}">
+          </div>
+        </div>
+      `;
+      flightRows.appendChild(row);
+    });
+  }
+
+  document.querySelectorAll('input[name="people"]').forEach(cb => {
+    cb.addEventListener('change', updateFlightRows);
+  });
+  updateFlightRows();
 </script>
 {% endblock %}

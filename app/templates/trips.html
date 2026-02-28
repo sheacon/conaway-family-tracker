@@ -24,6 +24,17 @@
               {% if fam %}<strong>{{ fam }}:</strong> {% endif %}{{ names | join(', ') }}{% if not loop.last %}<br>{% endif %}
             {% endfor %}
           {% else %}—{% endif %}
+          {% if trip.flight_info %}
+            <br><small>
+            {% for fi in trip.flight_info %}
+              {{ fi.person.name }}:
+              {% if fi.outbound_flight %}&#9992; {{ fi.outbound_flight | flight_link }}{% endif %}
+              {% if fi.outbound_flight and fi.return_flight %} / {% endif %}
+              {% if fi.return_flight %}&#9992; {{ fi.return_flight | flight_link }}{% endif %}
+              {% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+            </small>
+          {% endif %}
         </td>
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>

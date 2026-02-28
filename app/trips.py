@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Trip, Person, Family
+from app.models import Trip, Person, Family, TripPersonFlight
 from app.email import notify_trip_created, notify_trip_updated, notify_trip_deleted
 
 bp = Blueprint("trips", __name__)
@@ -49,7 +49,22 @@ def _current_locations():
                 "notes": next_trip.notes,
                 "dates": f"{next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')}",
             }
+        flight = None
         if active_trip:
+            fi = active_trip.flight_for_person(person.id)
+            if fi:
+                if active_trip.start_date == active_trip.end_date:
+                    # Same-day trip: before noon show outbound, after noon show return
+                    now_et = datetime.now(ZoneInfo("America/New_York"))
+                    if now_et.hour < 12 and fi.outbound_flight:
+                        flight = {"number": fi.outbound_flight, "url": TripPersonFlight.flight_url(fi.outbound_flight), "label": "Outbound"}
+                    elif now_et.hour >= 12 and fi.return_flight:
+                        flight = {"number": fi.return_flight, "url": TripPersonFlight.flight_url(fi.return_flight), "label": "Return"}
+                elif today == active_trip.start_date and fi.outbound_flight:
+                    flight = {"number": fi.outbound_flight, "url": TripPersonFlight.flight_url(fi.outbound_flight), "label": "Outbound"}
+                elif today == active_trip.end_date and fi.return_flight:
+                    flight = {"number": fi.return_flight, "url": TripPersonFlight.flight_url(fi.return_flight), "label": "Return"}
+
             locations.append({
                 "name": person.name,
                 "label": active_trip.display_name,
@@ -60,6 +75,7 @@ def _current_locations():
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
                 "next_trip": next_trip_info,
+                "flight": flight,
             })
         else:
             locations.append({
@@ -72,6 +88,7 @@ def _current_locations():
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
                 "next_trip": next_trip_info,
+                "flight": None,
             })
     return locations
 
@@ -127,7 +144,7 @@ def new_trip():
         if not request.form.get("latitude") or not request.form.get("longitude"):
             flash("Please find the destination on the map before submitting.", "error")
             people_by_family = _people_by_family()
-            return render_template("trip_form.html", trip=None, people_by_family=people_by_family)
+            return render_template("trip_form.html", trip=None, people_by_family=people_by_family, flight_data={})
         trip = Trip(
             destination=request.form["destination"],
             title=request.form.get("title") or None,
@@ -141,12 +158,21 @@ def new_trip():
         if person_ids:
             trip.people = Person.query.filter(Person.id.in_(person_ids)).all()
         db.session.add(trip)
+        db.session.flush()
+        for pid in person_ids:
+            outbound = request.form.get(f"outbound_flight_{pid}", "").strip() or None
+            ret = request.form.get(f"return_flight_{pid}", "").strip() or None
+            if outbound or ret:
+                db.session.add(TripPersonFlight(
+                    trip_id=trip.id, person_id=int(pid),
+                    outbound_flight=outbound, return_flight=ret,
+                ))
         db.session.commit()
         notify_trip_created(trip)
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
-    return render_template("trip_form.html", trip=None, people_by_family=people_by_family)
+    return render_template("trip_form.html", trip=None, people_by_family=people_by_family, flight_data={})
 
 
 @bp.route("/trips/<int:id>/edit", methods=["GET", "POST"])
@@ -157,7 +183,8 @@ def edit_trip(id):
         if not request.form.get("latitude") or not request.form.get("longitude"):
             flash("Please find the destination on the map before submitting.", "error")
             people_by_family = _people_by_family()
-            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family)
+            flight_data = {str(fi.person_id): {"outbound": fi.outbound_flight or "", "return": fi.return_flight or ""} for fi in trip.flight_info}
+            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, flight_data=flight_data)
         trip.destination = request.form["destination"]
         trip.title = request.form.get("title") or None
         trip.notes = request.form.get("notes") or None
@@ -167,12 +194,22 @@ def edit_trip(id):
         trip.longitude = float(request.form["longitude"])
         person_ids = request.form.getlist("people")
         trip.people = Person.query.filter(Person.id.in_(person_ids)).all() if person_ids else []
+        TripPersonFlight.query.filter_by(trip_id=trip.id).delete()
+        for pid in person_ids:
+            outbound = request.form.get(f"outbound_flight_{pid}", "").strip() or None
+            ret = request.form.get(f"return_flight_{pid}", "").strip() or None
+            if outbound or ret:
+                db.session.add(TripPersonFlight(
+                    trip_id=trip.id, person_id=int(pid),
+                    outbound_flight=outbound, return_flight=ret,
+                ))
         db.session.commit()
         notify_trip_updated(trip)
         flash("Trip updated!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
-    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family)
+    flight_data = {str(fi.person_id): {"outbound": fi.outbound_flight or "", "return": fi.return_flight or ""} for fi in trip.flight_info}
+    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, flight_data=flight_data)
 
 
 @bp.route("/trips/<int:id>/delete", methods=["POST"])

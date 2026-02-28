@@ -4,7 +4,7 @@ import resend
 from flask import current_app
 
 from app import db
-from app.models import Config, Person
+from app.models import Config, Person, TripPersonFlight
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,18 @@ def _trip_html(heading, trip):
     html += f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
     if trip.notes:
         html += f"<p><strong>Notes:</strong> {trip.notes}</p>"
+    if trip.flight_info:
+        html += "<p><strong>Flights:</strong></p><ul>"
+        for fi in trip.flight_info:
+            parts = []
+            if fi.outbound_flight:
+                url = TripPersonFlight.flight_url(fi.outbound_flight)
+                parts.append(f'Outbound: <a href="{url}">{fi.outbound_flight}</a>')
+            if fi.return_flight:
+                url = TripPersonFlight.flight_url(fi.return_flight)
+                parts.append(f'Return: <a href="{url}">{fi.return_flight}</a>')
+            html += f"<li>{fi.person.name}: {' / '.join(parts)}</li>"
+        html += "</ul>"
     html += '<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'
     return html
 

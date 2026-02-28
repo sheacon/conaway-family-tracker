@@ -436,3 +436,90 @@ class TestDeleteTrip:
     def test_delete_404(self, auth_client):
         resp = auth_client.post("/trips/9999/delete")
         assert resp.status_code == 404
+
+
+class TestFlightData:
+    @patch("app.trips.notify_trip_created")
+    def test_create_trip_with_flights(self, mock_notify, auth_client, make_person):
+        p = make_person(name="Flyer")
+        resp = auth_client.post("/trips/new", data={
+            "destination": "London",
+            "start_date": "2026-04-01",
+            "end_date": "2026-04-10",
+            "latitude": "51.5074",
+            "longitude": "-0.1278",
+            "people": [str(p.id)],
+            f"outbound_flight_{p.id}": "BA100",
+            f"return_flight_{p.id}": "BA101",
+        }, follow_redirects=True)
+        assert b"Trip added!" in resp.data
+        from app.models import Trip, TripPersonFlight
+        trip = Trip.query.filter_by(destination="London").first()
+        fi = trip.flight_for_person(p.id)
+        assert fi.outbound_flight == "BA100"
+        assert fi.return_flight == "BA101"
+
+    @patch("app.trips.notify_trip_updated")
+    def test_edit_trip_updates_flights(self, mock_notify, auth_client, make_person, make_trip, make_flight):
+        p = make_person(name="Editor")
+        t = make_trip(destination="Rome", people=[p])
+        make_flight(t, p, outbound="AZ1")
+        auth_client.post(f"/trips/{t.id}/edit", data={
+            "destination": "Rome",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-05",
+            "latitude": "41.9028",
+            "longitude": "12.4964",
+            "people": [str(p.id)],
+            f"outbound_flight_{p.id}": "AZ2",
+            f"return_flight_{p.id}": "AZ3",
+        })
+        from app.models import Trip
+        trip = Trip.query.get(t.id)
+        fi = trip.flight_for_person(p.id)
+        assert fi.outbound_flight == "AZ2"
+        assert fi.return_flight == "AZ3"
+
+    def test_edit_form_prepopulates_flights(self, auth_client, make_person, make_trip, make_flight):
+        p = make_person(name="Preloader")
+        t = make_trip(destination="Berlin", people=[p])
+        make_flight(t, p, outbound="LH500")
+        resp = auth_client.get(f"/trips/{t.id}/edit")
+        assert b"LH500" in resp.data
+
+    @freeze_time("2026-03-01")
+    def test_dashboard_shows_outbound_on_start_date(self, app, make_person, make_trip, make_flight):
+        from app.trips import _current_locations
+        p = make_person(name="DepartDay")
+        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), people=[p])
+        make_flight(t, p, outbound="NH100", ret="NH101")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "DepartDay")
+        assert loc["flight"] is not None
+        assert loc["flight"]["number"] == "NH100"
+        assert loc["flight"]["label"] == "Outbound"
+
+    @freeze_time("2026-03-05")
+    def test_dashboard_shows_return_on_end_date(self, app, make_person, make_trip, make_flight):
+        from app.trips import _current_locations
+        p = make_person(name="ReturnDay")
+        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), people=[p])
+        make_flight(t, p, outbound="NH100", ret="NH101")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "ReturnDay")
+        assert loc["flight"] is not None
+        assert loc["flight"]["number"] == "NH101"
+        assert loc["flight"]["label"] == "Return"
+
+    @freeze_time("2026-03-03")
+    def test_dashboard_no_flight_on_middle_day(self, app, make_person, make_trip, make_flight):
+        from app.trips import _current_locations
+        p = make_person(name="MidTrip")
+        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), people=[p])
+        make_flight(t, p, outbound="NH100", ret="NH101")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "MidTrip")
+        assert loc["flight"] is None

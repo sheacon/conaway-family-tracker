@@ -52,6 +52,29 @@ class Trip(db.Model):
     def is_upcoming(self):
         return self.start_date > date.today()
 
+    def flight_for_person(self, person_id: int):
+        for fi in self.flight_info:
+            if fi.person_id == person_id:
+                return fi
+        return None
+
+
+class TripPersonFlight(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    trip_id = db.Column(db.Integer, db.ForeignKey("trip.id"), nullable=False)
+    person_id = db.Column(db.Integer, db.ForeignKey("person.id"), nullable=False)
+    outbound_flight = db.Column(db.String(20), nullable=True)
+    return_flight = db.Column(db.String(20), nullable=True)
+
+    __table_args__ = (db.UniqueConstraint("trip_id", "person_id"),)
+
+    trip = db.relationship("Trip", backref=db.backref("flight_info", cascade="all, delete-orphan"))
+    person = db.relationship("Person", backref="flight_records")
+
+    @staticmethod
+    def flight_url(flight_number: str) -> str:
+        return f"https://flightaware.com/live/flight/{flight_number}"
+
 
 class Config(db.Model):
     key = db.Column(db.String(50), primary_key=True)

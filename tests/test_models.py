@@ -4,7 +4,7 @@ import pytest
 from freezegun import freeze_time
 
 from app import db
-from app.models import Family, Person, Trip, Config
+from app.models import Family, Person, Trip, Config, TripPersonFlight
 
 
 class TestFamily:
@@ -141,6 +141,49 @@ class TestTrip:
         t = make_trip(destination="Tokyo", title="Asia Trip", notes="Flight at 9am")
         assert t.title == "Asia Trip"
         assert t.notes == "Flight at 9am"
+
+
+class TestTripPersonFlight:
+    def test_create_flight(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Flyer")
+        t = make_trip(destination="Rome", people=[p])
+        f = make_flight(t, p, outbound="UA123", ret="UA456")
+        assert f.id is not None
+        assert f.outbound_flight == "UA123"
+        assert f.return_flight == "UA456"
+
+    def test_flight_url(self, app):
+        assert TripPersonFlight.flight_url("UA123") == "https://flightaware.com/live/flight/UA123"
+
+    def test_cascade_delete(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Cascade")
+        t = make_trip(destination="Berlin", people=[p])
+        make_flight(t, p, outbound="DL100")
+        db.session.delete(t)
+        db.session.commit()
+        assert TripPersonFlight.query.count() == 0
+
+    def test_unique_constraint(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Unique")
+        t = make_trip(destination="Tokyo", people=[p])
+        make_flight(t, p, outbound="AA1")
+        with pytest.raises(Exception):
+            make_flight(t, p, outbound="AA2")
+
+    def test_flight_for_person(self, app, make_person, make_trip, make_flight):
+        p1 = make_person(name="P1")
+        p2 = make_person(name="P2")
+        t = make_trip(destination="Paris", people=[p1, p2])
+        make_flight(t, p1, outbound="AF100")
+        assert t.flight_for_person(p1.id).outbound_flight == "AF100"
+        assert t.flight_for_person(p2.id) is None
+
+    def test_flight_nullable_fields(self, app, make_person, make_trip, make_flight):
+        p = make_person(name="Partial")
+        t = make_trip(destination="Madrid", people=[p])
+        f = make_flight(t, p, outbound="IB200")
+        assert f.outbound_flight == "IB200"
+        assert f.return_flight is None
 
 
 class TestConfig:

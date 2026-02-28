@@ -89,3 +89,9 @@ input[type="color"] {
   background: none !important;
   border: none !important;
 }
+
+.flight-row {
+  border-left: 3px solid var(--pico-primary);
+  padding-left: 0.75rem;
+  margin-bottom: 0.5rem;
+}

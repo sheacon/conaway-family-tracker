@@ -45,6 +45,15 @@ def create_app():
     from .cli import send_notifications
     app.cli.add_command(send_notifications)
 
+    @app.template_filter("flight_link")
+    def flight_link(flight_number):
+        if not flight_number:
+            return ""
+        from markupsafe import Markup
+        from app.models import TripPersonFlight
+        url = TripPersonFlight.flight_url(flight_number)
+        return Markup(f'<a href="{url}" target="_blank">{flight_number}</a>')
+
     @app.template_filter("group_by_family")
     def group_by_family(people):
         from collections import OrderedDict
