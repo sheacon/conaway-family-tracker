@@ -1,5 +1,5 @@
 from app import db
-from app.models import Person, Family
+from app.models import Config, Person, Family
 
 
 class TestPeopleAdmin:
@@ -141,3 +141,39 @@ class TestFamilyAdmin:
     def test_delete_family_404(self, auth_client):
         resp = auth_client.post("/admin/families/9999/delete")
         assert resp.status_code == 404
+
+
+class TestNotificationsToggle:
+    def test_toggle_pauses_notifications(self, auth_client, app):
+        resp = auth_client.post("/admin/notifications/toggle")
+        assert resp.status_code == 302
+        with app.app_context():
+            row = db.session.get(Config, "notifications_paused")
+            assert row.value == "1"
+
+    def test_toggle_resumes_notifications(self, auth_client, app):
+        with app.app_context():
+            db.session.add(Config(key="notifications_paused", value="1"))
+            db.session.commit()
+        resp = auth_client.post("/admin/notifications/toggle")
+        assert resp.status_code == 302
+        with app.app_context():
+            row = db.session.get(Config, "notifications_paused")
+            assert row.value == "0"
+
+    def test_admin_page_shows_paused_state(self, auth_client, app):
+        with app.app_context():
+            db.session.add(Config(key="notifications_paused", value="1"))
+            db.session.commit()
+        resp = auth_client.get("/admin/")
+        assert b"notifications are paused" in resp.data.lower()
+        assert b"Resume Notifications" in resp.data
+
+    def test_admin_page_shows_active_state(self, auth_client):
+        resp = auth_client.get("/admin/")
+        assert b"Pause Notifications" in resp.data
+
+    def test_requires_login(self, client):
+        resp = client.post("/admin/notifications/toggle")
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]

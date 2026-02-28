@@ -1,11 +1,11 @@
 from datetime import date
 from unittest.mock import patch, MagicMock
 
-from app.models import Trip, Person
+from app.models import Config, Trip, Person
 from app import db
 from app.email import (
     _get_recipients, _send_email, _format_people, _format_dates,
-    _subject, _trip_html,
+    _subject, _trip_html, notifications_paused,
     notify_trip_created, notify_trip_updated, notify_trip_deleted,
     notify_trip_starting_soon, notify_trip_started, notify_trip_ended,
 )
@@ -195,3 +195,72 @@ class TestNotifyFunctions:
         notify_trip_ended(t)
         mock_send.assert_called_once()
         assert "Trip Ended" in mock_send.call_args[0][0]
+
+
+class TestNotificationsPaused:
+    def test_false_when_no_config_row(self, app):
+        assert notifications_paused() is False
+
+    def test_false_when_value_is_zero(self, app):
+        db.session.add(Config(key="notifications_paused", value="0"))
+        db.session.commit()
+        assert notifications_paused() is False
+
+    def test_true_when_value_is_one(self, app):
+        db.session.add(Config(key="notifications_paused", value="1"))
+        db.session.commit()
+        assert notifications_paused() is True
+
+
+class TestCrudNotifiersSkipWhenPaused:
+    def _pause(self):
+        db.session.add(Config(key="notifications_paused", value="1"))
+        db.session.commit()
+
+    @patch("app.email._send_email")
+    def test_created_skipped(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="P1")])
+        notify_trip_created(t)
+        mock_send.assert_not_called()
+
+    @patch("app.email._send_email")
+    def test_updated_skipped(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="P2")])
+        notify_trip_updated(t)
+        mock_send.assert_not_called()
+
+    @patch("app.email._send_email")
+    def test_deleted_skipped(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="P3")])
+        notify_trip_deleted(t)
+        mock_send.assert_not_called()
+
+
+class TestScheduledNotifiersSendWhenPaused:
+    def _pause(self):
+        db.session.add(Config(key="notifications_paused", value="1"))
+        db.session.commit()
+
+    @patch("app.email._send_email")
+    def test_starting_soon_still_sends(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="S1")])
+        notify_trip_starting_soon(t)
+        mock_send.assert_called_once()
+
+    @patch("app.email._send_email")
+    def test_started_still_sends(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="S2")])
+        notify_trip_started(t)
+        mock_send.assert_called_once()
+
+    @patch("app.email._send_email")
+    def test_ended_still_sends(self, mock_send, app, make_person, make_trip):
+        self._pause()
+        t = make_trip(people=[make_person(name="S3")])
+        notify_trip_ended(t)
+        mock_send.assert_called_once()

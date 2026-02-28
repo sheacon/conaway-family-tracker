@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Person, Family
+from app.models import Config, Person, Family
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -12,7 +12,22 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 def people_list():
     people = Person.query.order_by(Person.name).all()
     families = Family.query.order_by(Family.sort_order).all()
-    return render_template("admin/people.html", people=people, families=families)
+    row = db.session.get(Config, "notifications_paused")
+    paused = row is not None and row.value == "1"
+    return render_template("admin/people.html", people=people, families=families,
+                           notifications_paused=paused)
+
+
+@bp.route("/notifications/toggle", methods=["POST"])
+@login_required
+def toggle_notifications():
+    row = db.session.get(Config, "notifications_paused")
+    if row is None:
+        db.session.add(Config(key="notifications_paused", value="1"))
+    else:
+        row.value = "0" if row.value == "1" else "1"
+    db.session.commit()
+    return redirect(url_for("admin.people_list"))
 
 
 @bp.route("/people/new", methods=["POST"])

@@ -3,9 +3,16 @@ import logging
 import resend
 from flask import current_app
 
-from app.models import Person
+from app import db
+from app.models import Config, Person
 
 logger = logging.getLogger(__name__)
+
+
+def notifications_paused() -> bool:
+    """Return True if CRUD trip notifications are paused via admin toggle."""
+    row = db.session.get(Config, "notifications_paused")
+    return row is not None and row.value == "1"
 
 
 def _get_recipients():
@@ -62,6 +69,8 @@ def _trip_html(heading, trip):
 
 
 def notify_trip_created(trip):
+    if notifications_paused():
+        return
     _send_email(
         _subject("New Trip", trip),
         _trip_html("New Trip Added", trip),
@@ -69,6 +78,8 @@ def notify_trip_created(trip):
 
 
 def notify_trip_updated(trip):
+    if notifications_paused():
+        return
     _send_email(
         _subject("Trip Updated", trip),
         _trip_html("Trip Updated", trip),
@@ -76,6 +87,8 @@ def notify_trip_updated(trip):
 
 
 def notify_trip_deleted(trip):
+    if notifications_paused():
+        return
     _send_email(
         _subject("Trip Cancelled", trip),
         _trip_html("Trip Cancelled", trip),
