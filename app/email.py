@@ -60,41 +60,41 @@ def _trip_html(heading, trip):
 
 def notify_trip_created(trip):
     _send_email(
-        _subject("New trip", trip),
+        _subject("New Trip", trip),
         _trip_html("New Trip Added", trip),
     )
 
 
 def notify_trip_updated(trip):
     _send_email(
-        _subject("Trip updated", trip),
+        _subject("Trip Updated", trip),
         _trip_html("Trip Updated", trip),
     )
 
 
 def notify_trip_deleted(trip):
     _send_email(
-        _subject("Trip cancelled", trip),
+        _subject("Trip Cancelled", trip),
         _trip_html("Trip Cancelled", trip),
     )
 
 
 def notify_trip_starting_soon(trip):
     _send_email(
-        _subject("Trip in 3 days", trip),
+        _subject("Trip in 3 Days", trip),
         _trip_html("Trip Starting Soon", trip),
     )
 
 
 def notify_trip_started(trip):
     _send_email(
-        _subject("Trip starting today", trip),
+        _subject("Trip Starting Today", trip),
         _trip_html("Trip Starting Today", trip),
     )
 
 
 def notify_trip_ended(trip):
     _send_email(
-        _subject("Trip ended", trip),
+        _subject("Trip Ended", trip),
         _trip_html("Trip Ended", trip),
     )
