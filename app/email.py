@@ -4,7 +4,7 @@ import resend
 from flask import current_app
 
 from app import db
-from app.models import Config, Person, TripPersonFlight
+from app.models import Config, Person, Trip
 
 logger = logging.getLogger(__name__)
 
@@ -72,29 +72,21 @@ def _trip_html(heading, trip):
     html += f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
     if trip.notes:
         html += f"<p><strong>Notes:</strong> {trip.notes}</p>"
-    if trip.flight_info:
-        html += "<p><strong>Flights:</strong></p><ul>"
-        from collections import OrderedDict
-        flight_groups = OrderedDict()
-        for fi in trip.flight_info:
-            key = (fi.outbound_flight or "", fi.return_flight or "")
-            flight_groups.setdefault(key, []).append(fi.person.name)
-        for (outbound, ret), names in flight_groups.items():
-            parts = []
-            if outbound:
-                links = ", ".join(
-                    f'<a href="{TripPersonFlight.flight_url(n.strip())}">{n.strip()}</a>'
-                    for n in outbound.split(",") if n.strip()
-                )
-                parts.append(f"Outbound: {links}")
-            if ret:
-                links = ", ".join(
-                    f'<a href="{TripPersonFlight.flight_url(n.strip())}">{n.strip()}</a>'
-                    for n in ret.split(",") if n.strip()
-                )
-                parts.append(f"Return: {links}")
-            html += f"<li>{', '.join(names)}: {' / '.join(parts)}</li>"
-        html += "</ul>"
+    if trip.outbound_flight or trip.return_flight:
+        parts = []
+        if trip.outbound_flight:
+            links = ", ".join(
+                f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
+                for n in trip.outbound_flight.split(",") if n.strip()
+            )
+            parts.append(f"Outbound: {links}")
+        if trip.return_flight:
+            links = ", ".join(
+                f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
+                for n in trip.return_flight.split(",") if n.strip()
+            )
+            parts.append(f"Return: {links}")
+        html += f"<p><strong>Flights:</strong> {' / '.join(parts)}</p>"
     html += '<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'
     return html
 

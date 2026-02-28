@@ -37,7 +37,13 @@ class Trip(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    outbound_flight = db.Column(db.String(100), nullable=True)
+    return_flight = db.Column(db.String(100), nullable=True)
     people = db.relationship("Person", secondary=trip_person, backref="trips")
+
+    @staticmethod
+    def flight_url(flight_number: str) -> str:
+        return f"https://flightaware.com/live/flight/{flight_number}"
 
     @property
     def display_name(self) -> str:
@@ -93,30 +99,6 @@ class Trip(db.Model):
         self.longitude = first.longitude
         self.start_date = first.start_date
         self.end_date = last.end_date
-
-    def flight_for_person(self, person_id: int):
-        for fi in self.flight_info:
-            if fi.person_id == person_id:
-                return fi
-        return None
-
-
-class TripPersonFlight(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    trip_id = db.Column(db.Integer, db.ForeignKey("trip.id"), nullable=False)
-    person_id = db.Column(db.Integer, db.ForeignKey("person.id"), nullable=False)
-    outbound_flight = db.Column(db.String(100), nullable=True)
-    return_flight = db.Column(db.String(100), nullable=True)
-
-    __table_args__ = (db.UniqueConstraint("trip_id", "person_id"),)
-
-    trip = db.relationship("Trip", backref=db.backref("flight_info", cascade="all, delete-orphan"))
-    person = db.relationship("Person", backref="flight_records")
-
-    @staticmethod
-    def flight_url(flight_number: str) -> str:
-        return f"https://flightaware.com/live/flight/{flight_number}"
-
 
 class TripStop(db.Model):
     id = db.Column(db.Integer, primary_key=True)

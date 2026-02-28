@@ -90,12 +90,6 @@ input[type="color"] {
   border: none !important;
 }
 
-.flight-row {
-  border-left: 3px solid var(--pico-primary);
-  padding-left: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
 .stop-card {
   border: 1px solid var(--pico-muted-border-color);
   border-radius: var(--pico-border-radius);

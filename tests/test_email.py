@@ -143,30 +143,27 @@ class TestTripHtml:
         html = _trip_html("Heading", t)
         assert "<strong>Notes:</strong>" not in html
 
-    def test_includes_flights_when_set(self, app, make_person, make_trip, make_flight):
+    def test_includes_flights_when_set(self, app, make_person, make_trip):
         p = make_person(name="Gina")
-        t = make_trip(destination="Tokyo", people=[p])
-        make_flight(t, p, outbound="NH100", ret="NH101")
+        t = make_trip(destination="Tokyo", people=[p],
+                      outbound_flight="NH100", return_flight="NH101")
         html = _trip_html("Heading", t)
         assert "<strong>Flights:</strong>" in html
-        assert "Gina" in html
         assert "NH100" in html
         assert "NH101" in html
         assert "flightaware.com/live/flight/NH100" in html
         assert "flightaware.com/live/flight/NH101" in html
 
-    def test_includes_flights_outbound_only(self, app, make_person, make_trip, make_flight):
+    def test_includes_flights_outbound_only(self, app, make_person, make_trip):
         p = make_person(name="Person G")
-        t = make_trip(destination="Berlin", people=[p])
-        make_flight(t, p, outbound="LH400")
+        t = make_trip(destination="Berlin", people=[p], outbound_flight="LH400")
         html = _trip_html("Heading", t)
         assert "LH400" in html
         assert "Outbound" in html
 
-    def test_includes_flights_return_only(self, app, make_person, make_trip, make_flight):
+    def test_includes_flights_return_only(self, app, make_person, make_trip):
         p = make_person(name="Iris")
-        t = make_trip(destination="Madrid", people=[p])
-        make_flight(t, p, ret="IB500")
+        t = make_trip(destination="Madrid", people=[p], return_flight="IB500")
         html = _trip_html("Heading", t)
         assert "IB500" in html
         assert "Return" in html
@@ -177,10 +174,10 @@ class TestTripHtml:
         html = _trip_html("Heading", t)
         assert "<strong>Flights:</strong>" not in html
 
-    def test_multi_leg_outbound_flights(self, app, make_person, make_trip, make_flight):
+    def test_multi_leg_outbound_flights(self, app, make_person, make_trip):
         p = make_person(name="MultiLeg")
-        t = make_trip(destination="Tokyo", people=[p])
-        make_flight(t, p, outbound="UA100, AA200", ret="AA300, UA400")
+        t = make_trip(destination="Tokyo", people=[p],
+                      outbound_flight="UA100, AA200", return_flight="AA300, UA400")
         html = _trip_html("Heading", t)
         assert "flightaware.com/live/flight/UA100" in html
         assert "flightaware.com/live/flight/AA200" in html
@@ -188,31 +185,6 @@ class TestTripHtml:
         assert "flightaware.com/live/flight/UA400" in html
         assert ">UA100</a>" in html
         assert ">AA200</a>" in html
-
-    def test_includes_multiple_people_flights(self, app, make_person, make_trip, make_flight):
-        p1 = make_person(name="Kate")
-        p2 = make_person(name="Leo")
-        t = make_trip(destination="Paris", people=[p1, p2])
-        make_flight(t, p1, outbound="AF100", ret="AF101")
-        make_flight(t, p2, outbound="AF200")
-        html = _trip_html("Heading", t)
-        assert "Kate" in html
-        assert "AF100" in html
-        assert "AF101" in html
-        assert "Leo" in html
-        assert "AF200" in html
-
-    def test_same_flights_grouped_in_email(self, app, make_person, make_trip, make_flight):
-        p1 = make_person(name="Person A")
-        p2 = make_person(name="Person B")
-        t = make_trip(destination="Nashville", people=[p1, p2])
-        make_flight(t, p1, outbound="WN209", ret="WN4630")
-        make_flight(t, p2, outbound="WN209", ret="WN4630")
-        html = _trip_html("Heading", t)
-        assert "Mimsy, Alex" in html
-        assert html.count("WN209") == 2  # link text + href
-        # Should be one <li>, not two
-        assert html.count("<li>") == 1
 
 
 class TestNotifyFunctions:

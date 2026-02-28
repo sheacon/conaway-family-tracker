@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Trip, TripStop, Person, Family, TripPersonFlight
+from app.models import Trip, TripStop, Person, Family
 from app.email import notify_trip_created, notify_trip_updated, notify_trip_deleted
 
 bp = Blueprint("trips", __name__)
@@ -51,18 +51,16 @@ def _current_locations():
             }
         flight = None
         if active_trip:
-            fi = active_trip.flight_for_person(person.id)
-            if fi:
-                if active_trip.start_date == active_trip.end_date:
-                    now_et = datetime.now(ZoneInfo("America/New_York"))
-                    if now_et.hour < 12 and fi.outbound_flight:
-                        flight = {"number": fi.outbound_flight, "label": "Outbound"}
-                    elif now_et.hour >= 12 and fi.return_flight:
-                        flight = {"number": fi.return_flight, "label": "Return"}
-                elif today == active_trip.start_date and fi.outbound_flight:
-                    flight = {"number": fi.outbound_flight, "label": "Outbound"}
-                elif today == active_trip.end_date and fi.return_flight:
-                    flight = {"number": fi.return_flight, "label": "Return"}
+            if active_trip.start_date == active_trip.end_date:
+                now_et = datetime.now(ZoneInfo("America/New_York"))
+                if now_et.hour < 12 and active_trip.outbound_flight:
+                    flight = {"number": active_trip.outbound_flight, "label": "Outbound"}
+                elif now_et.hour >= 12 and active_trip.return_flight:
+                    flight = {"number": active_trip.return_flight, "label": "Return"}
+            elif today == active_trip.start_date and active_trip.outbound_flight:
+                flight = {"number": active_trip.outbound_flight, "label": "Outbound"}
+            elif today == active_trip.end_date and active_trip.return_flight:
+                flight = {"number": active_trip.return_flight, "label": "Return"}
 
             # Use current stop coordinates for multi-stop trips
             current_stop = active_trip.current_stop(today)
@@ -177,7 +175,7 @@ def new_trip():
         if not stops:
             flash("Please confirm the location for all stops before submitting.", "error")
             people_by_family = _people_by_family()
-            return render_template("trip_form.html", trip=None, people_by_family=people_by_family, flight_data={}, stops_data=[])
+            return render_template("trip_form.html", trip=None, people_by_family=people_by_family, stops_data=[])
         trip = Trip(
             destination=stops[0].destination,
             title=request.form.get("title") or None,
@@ -186,6 +184,8 @@ def new_trip():
             end_date=stops[-1].end_date,
             latitude=stops[0].latitude,
             longitude=stops[0].longitude,
+            outbound_flight=request.form.get("outbound_flight", "").strip() or None,
+            return_flight=request.form.get("return_flight", "").strip() or None,
         )
         for stop in stops:
             trip.stops.append(stop)
@@ -193,21 +193,12 @@ def new_trip():
         if person_ids:
             trip.people = Person.query.filter(Person.id.in_(person_ids)).all()
         db.session.add(trip)
-        db.session.flush()
-        for pid in person_ids:
-            outbound = request.form.get(f"outbound_flight_{pid}", "").strip() or None
-            ret = request.form.get(f"return_flight_{pid}", "").strip() or None
-            if outbound or ret:
-                db.session.add(TripPersonFlight(
-                    trip_id=trip.id, person_id=int(pid),
-                    outbound_flight=outbound, return_flight=ret,
-                ))
         db.session.commit()
         notify_trip_created(trip)
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
-    return render_template("trip_form.html", trip=None, people_by_family=people_by_family, flight_data={}, stops_data=[])
+    return render_template("trip_form.html", trip=None, people_by_family=people_by_family, stops_data=[])
 
 
 @bp.route("/trips/<int:id>/edit", methods=["GET", "POST"])
@@ -219,12 +210,13 @@ def edit_trip(id):
         if not stops:
             flash("Please confirm the location for all stops before submitting.", "error")
             people_by_family = _people_by_family()
-            flight_data = {str(fi.person_id): {"outbound": fi.outbound_flight or "", "return": fi.return_flight or ""} for fi in trip.flight_info}
             stops_data = [{"destination": s.destination, "latitude": s.latitude, "longitude": s.longitude,
                            "start_date": s.start_date.isoformat(), "end_date": s.end_date.isoformat()} for s in trip.stops]
-            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, flight_data=flight_data, stops_data=stops_data)
+            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, stops_data=stops_data)
         trip.title = request.form.get("title") or None
         trip.notes = request.form.get("notes") or None
+        trip.outbound_flight = request.form.get("outbound_flight", "").strip() or None
+        trip.return_flight = request.form.get("return_flight", "").strip() or None
         # Delete existing stops and re-create
         TripStop.query.filter_by(trip_id=trip.id).delete()
         for stop in stops:
@@ -239,24 +231,14 @@ def edit_trip(id):
         trip.end_date = stops[-1].end_date
         person_ids = request.form.getlist("people")
         trip.people = Person.query.filter(Person.id.in_(person_ids)).all() if person_ids else []
-        TripPersonFlight.query.filter_by(trip_id=trip.id).delete()
-        for pid in person_ids:
-            outbound = request.form.get(f"outbound_flight_{pid}", "").strip() or None
-            ret = request.form.get(f"return_flight_{pid}", "").strip() or None
-            if outbound or ret:
-                db.session.add(TripPersonFlight(
-                    trip_id=trip.id, person_id=int(pid),
-                    outbound_flight=outbound, return_flight=ret,
-                ))
         db.session.commit()
         notify_trip_updated(trip)
         flash("Trip updated!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
-    flight_data = {str(fi.person_id): {"outbound": fi.outbound_flight or "", "return": fi.return_flight or ""} for fi in trip.flight_info}
     stops_data = [{"destination": s.destination, "latitude": s.latitude, "longitude": s.longitude,
                    "start_date": s.start_date.isoformat(), "end_date": s.end_date.isoformat()} for s in trip.stops]
-    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, flight_data=flight_data, stops_data=stops_data)
+    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, stops_data=stops_data)
 
 
 @bp.route("/trips/<int:id>/delete", methods=["POST"])

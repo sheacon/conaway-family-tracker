@@ -416,48 +416,44 @@ class TestFlightData:
         p = make_person(name="Flyer")
         data = _stop_form_data("London", "2026-04-01", "2026-04-10", 51.5074, -0.1278)
         data["people"] = [str(p.id)]
-        data[f"outbound_flight_{p.id}"] = "BA100"
-        data[f"return_flight_{p.id}"] = "BA101"
+        data["outbound_flight"] = "BA100"
+        data["return_flight"] = "BA101"
         resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
-        from app.models import Trip, TripPersonFlight
+        from app.models import Trip
         trip = Trip.query.filter_by(destination="London").first()
-        fi = trip.flight_for_person(p.id)
-        assert fi.outbound_flight == "BA100"
-        assert fi.return_flight == "BA101"
+        assert trip.outbound_flight == "BA100"
+        assert trip.return_flight == "BA101"
 
     @patch("app.trips.notify_trip_updated")
-    def test_edit_trip_updates_flights(self, mock_notify, auth_client, make_person, make_trip, make_stop, make_flight):
+    def test_edit_trip_updates_flights(self, mock_notify, auth_client, make_person, make_trip, make_stop):
         p = make_person(name="Editor")
-        t = make_trip(destination="Rome", people=[p])
+        t = make_trip(destination="Rome", people=[p], outbound_flight="AZ1")
         make_stop(t, destination="Rome")
-        make_flight(t, p, outbound="AZ1")
         data = _stop_form_data("Rome", "2026-03-01", "2026-03-05", 41.9028, 12.4964)
         data["people"] = [str(p.id)]
-        data[f"outbound_flight_{p.id}"] = "AZ2"
-        data[f"return_flight_{p.id}"] = "AZ3"
+        data["outbound_flight"] = "AZ2"
+        data["return_flight"] = "AZ3"
         auth_client.post(f"/trips/{t.id}/edit", data=data)
         from app.models import Trip
         trip = Trip.query.get(t.id)
-        fi = trip.flight_for_person(p.id)
-        assert fi.outbound_flight == "AZ2"
-        assert fi.return_flight == "AZ3"
+        assert trip.outbound_flight == "AZ2"
+        assert trip.return_flight == "AZ3"
 
-    def test_edit_form_prepopulates_flights(self, auth_client, make_person, make_trip, make_stop, make_flight):
+    def test_edit_form_prepopulates_flights(self, auth_client, make_person, make_trip, make_stop):
         p = make_person(name="Preloader")
-        t = make_trip(destination="Berlin", people=[p])
+        t = make_trip(destination="Berlin", people=[p], outbound_flight="LH500")
         make_stop(t, destination="Berlin")
-        make_flight(t, p, outbound="LH500")
         resp = auth_client.get(f"/trips/{t.id}/edit")
         assert b"LH500" in resp.data
 
     @freeze_time("2026-03-01")
-    def test_dashboard_shows_outbound_on_start_date(self, app, make_person, make_trip, make_flight):
+    def test_dashboard_shows_outbound_on_start_date(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="DepartDay")
-        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
-                      end_date=date(2026, 3, 5), people=[p])
-        make_flight(t, p, outbound="NH100", ret="NH101")
+        make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p],
+                  outbound_flight="NH100", return_flight="NH101")
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "DepartDay")
         assert loc["flight"] is not None
@@ -465,12 +461,12 @@ class TestFlightData:
         assert loc["flight"]["label"] == "Outbound"
 
     @freeze_time("2026-03-05")
-    def test_dashboard_shows_return_on_end_date(self, app, make_person, make_trip, make_flight):
+    def test_dashboard_shows_return_on_end_date(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="ReturnDay")
-        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
-                      end_date=date(2026, 3, 5), people=[p])
-        make_flight(t, p, outbound="NH100", ret="NH101")
+        make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p],
+                  outbound_flight="NH100", return_flight="NH101")
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "ReturnDay")
         assert loc["flight"] is not None
@@ -478,23 +474,23 @@ class TestFlightData:
         assert loc["flight"]["label"] == "Return"
 
     @freeze_time("2026-03-03")
-    def test_dashboard_no_flight_on_middle_day(self, app, make_person, make_trip, make_flight):
+    def test_dashboard_no_flight_on_middle_day(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="MidTrip")
-        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
-                      end_date=date(2026, 3, 5), people=[p])
-        make_flight(t, p, outbound="NH100", ret="NH101")
+        make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p],
+                  outbound_flight="NH100", return_flight="NH101")
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "MidTrip")
         assert loc["flight"] is None
 
     @freeze_time("2026-03-01")
-    def test_dashboard_multi_leg_outbound(self, app, make_person, make_trip, make_flight):
+    def test_dashboard_multi_leg_outbound(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="MultiOut")
-        t = make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
-                      end_date=date(2026, 3, 5), people=[p])
-        make_flight(t, p, outbound="UA100, AA200", ret="AA300")
+        make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p],
+                  outbound_flight="UA100, AA200", return_flight="AA300")
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "MultiOut")
         assert loc["flight"] is not None
@@ -507,12 +503,11 @@ class TestFlightData:
         p = make_person(name="CommaFlyer")
         data = _stop_form_data("Tokyo", "2026-04-01", "2026-04-10", 35.6762, 139.6503)
         data["people"] = [str(p.id)]
-        data[f"outbound_flight_{p.id}"] = "UA100, AA200"
-        data[f"return_flight_{p.id}"] = "AA300, UA400"
+        data["outbound_flight"] = "UA100, AA200"
+        data["return_flight"] = "AA300, UA400"
         resp = auth_client.post("/trips/new", data=data, follow_redirects=True)
         assert b"Trip added!" in resp.data
         from app.models import Trip
         trip = Trip.query.filter_by(destination="Tokyo").first()
-        fi = trip.flight_for_person(p.id)
-        assert fi.outbound_flight == "UA100, AA200"
-        assert fi.return_flight == "AA300, UA400"
+        assert trip.outbound_flight == "UA100, AA200"
+        assert trip.return_flight == "AA300, UA400"
