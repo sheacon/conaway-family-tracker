@@ -50,3 +50,33 @@ class TestSeedPeople:
         assert Person.query.count() == 10
         _seed_people()
         assert Person.query.count() == 10
+
+
+class TestGroupByFamilyFilter:
+    def test_groups_by_family_sorted(self, app, make_family, make_person, make_trip):
+        f1 = make_family(name="Alpha", sort_order=1)
+        f2 = make_family(name="Beta", sort_order=2)
+        p1 = make_person(name="Zoe", family=f1)
+        p2 = make_person(name="Amy", family=f2)
+        p3 = make_person(name="Ben", family=f1)
+        trip = make_trip(people=[p2, p1, p3])
+        filt = app.jinja_env.filters["group_by_family"]
+        result = filt(trip.people)
+        keys = list(result.keys())
+        assert keys == ["Alpha", "Beta"]
+        assert result["Alpha"] == ["Ben", "Zoe"]
+        assert result["Beta"] == ["Amy"]
+
+    def test_no_family_has_empty_key(self, app, make_person, make_trip):
+        p = make_person(name="Solo")
+        trip = make_trip(people=[p])
+        filt = app.jinja_env.filters["group_by_family"]
+        result = filt(trip.people)
+        assert "" in result
+        assert result[""] == ["Solo"]
+
+    def test_empty_people(self, app, make_trip):
+        trip = make_trip()
+        filt = app.jinja_env.filters["group_by_family"]
+        result = filt(trip.people)
+        assert result == {}

@@ -45,6 +45,15 @@ def create_app():
     from .cli import send_notifications
     app.cli.add_command(send_notifications)
 
+    @app.template_filter("group_by_family")
+    def group_by_family(people):
+        from collections import OrderedDict
+        groups = OrderedDict()
+        for p in sorted(people, key=lambda p: (p.family.sort_order if p.family else 999, p.name)):
+            key = p.family.name if p.family else ""
+            groups.setdefault(key, []).append(p.name)
+        return groups
+
     with app.app_context():
         _seed_people()
 
