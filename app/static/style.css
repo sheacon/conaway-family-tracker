@@ -1,5 +1,10 @@
 /* Conaway Family Tracker */
 
+nav ul li a,
+nav ul li a strong {
+  font-size: 1.75rem;
+}
+
 .flash-success {
   --pico-card-background-color: #d4edda;
   --pico-card-border-color: #c3e6cb;
