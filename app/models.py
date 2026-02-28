@@ -30,12 +30,18 @@ class Person(db.Model):
 class Trip(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     destination = db.Column(db.String(200), nullable=False)
+    title = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     people = db.relationship("Person", secondary=trip_person, backref="trips")
+
+    @property
+    def display_name(self) -> str:
+        return self.title if self.title else self.destination
 
     @property
     def is_active(self):

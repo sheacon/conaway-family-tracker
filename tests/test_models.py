@@ -121,6 +121,27 @@ class TestTrip:
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 1))
         assert t.is_active is True
 
+    def test_display_name_with_title(self, app, make_trip):
+        t = make_trip(destination="Paris", title="Spring Break 2026")
+        assert t.display_name == "Spring Break 2026"
+
+    def test_display_name_without_title(self, app, make_trip):
+        t = make_trip(destination="Paris")
+        assert t.display_name == "Paris"
+
+    def test_title_nullable(self, app, make_trip):
+        t = make_trip(destination="Rome")
+        assert t.title is None
+
+    def test_notes_nullable(self, app, make_trip):
+        t = make_trip(destination="Rome")
+        assert t.notes is None
+
+    def test_title_and_notes_stored(self, app, make_trip):
+        t = make_trip(destination="Tokyo", title="Asia Trip", notes="Flight at 9am")
+        assert t.title == "Asia Trip"
+        assert t.notes == "Flight at 9am"
+
 
 class TestConfig:
     def test_config_key_value(self, app):

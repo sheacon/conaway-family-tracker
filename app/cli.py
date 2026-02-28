@@ -15,15 +15,15 @@ def send_notifications():
 
     soon = today + timedelta(days=3)
     for trip in Trip.query.filter(Trip.start_date == soon).all():
-        click.echo(f"Starting soon: {trip.destination}")
+        click.echo(f"Starting soon: {trip.display_name}")
         notify_trip_starting_soon(trip)
 
     for trip in Trip.query.filter(Trip.start_date == today).all():
-        click.echo(f"Starting today: {trip.destination}")
+        click.echo(f"Starting today: {trip.display_name}")
         notify_trip_started(trip)
 
     for trip in Trip.query.filter(Trip.end_date == today, Trip.start_date != today).all():
-        click.echo(f"Ended today: {trip.destination}")
+        click.echo(f"Ended today: {trip.display_name}")
         notify_trip_ended(trip)
 
     click.echo("Done.")

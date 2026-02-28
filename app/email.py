@@ -45,17 +45,20 @@ def _format_dates(trip):
 def _subject(prefix, trip):
     people = _format_people(trip)
     dates = _format_dates(trip)
-    return f"{prefix}: {people} – {trip.destination} ({dates})"
+    return f"{prefix}: {people} – {trip.display_name} ({dates})"
 
 
 def _trip_html(heading, trip):
-    return (
-        f"<h2>{heading}</h2>"
-        f"<p><strong>Destination:</strong> {trip.destination}</p>"
-        f"<p><strong>Who:</strong> {_format_people(trip)}</p>"
-        f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
-        f'<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'
-    )
+    html = f"<h2>{heading}</h2>"
+    if trip.title:
+        html += f"<p><strong>Trip:</strong> {trip.title}</p>"
+    html += f"<p><strong>Destination:</strong> {trip.destination}</p>"
+    html += f"<p><strong>Who:</strong> {_format_people(trip)}</p>"
+    html += f"<p><strong>When:</strong> {_format_dates(trip)}</p>"
+    if trip.notes:
+        html += f"<p><strong>Notes:</strong> {trip.notes}</p>"
+    html += '<p><a href="https://conaway-family-tracker.fly.dev/">View Tracker</a></p>'
+    return html
 
 
 def notify_trip_created(trip):

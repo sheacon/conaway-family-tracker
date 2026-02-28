@@ -6,14 +6,17 @@
 <figure>
   <table>
     <thead>
-      <tr><th>Dates</th><th>Who</th><th>Destination</th></tr>
+      <tr><th>Dates</th><th>Who</th><th>Trip</th></tr>
     </thead>
     <tbody>
       {% for trip in upcoming %}
       <tr>
         <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
         <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
-        <td>{{ trip.destination }}</td>
+        <td>
+          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>
+          {% else %}{{ trip.destination }}{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

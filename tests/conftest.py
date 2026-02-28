@@ -83,13 +83,15 @@ def make_trip(app):
     from datetime import date
 
     def _make(destination="Paris", start_date=None, end_date=None,
-              lat=48.8566, lng=2.3522, people=None):
+              lat=48.8566, lng=2.3522, people=None, title=None, notes=None):
         if start_date is None:
             start_date = date(2026, 3, 1)
         if end_date is None:
             end_date = date(2026, 3, 5)
         t = Trip(
             destination=destination,
+            title=title,
+            notes=notes,
             start_date=start_date,
             end_date=end_date,
             latitude=lat,

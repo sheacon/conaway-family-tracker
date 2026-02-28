@@ -237,6 +237,61 @@ class TestNewTrip:
         assert b"Trip added!" in resp.data
 
 
+class TestNewTripTitleNotes:
+    @patch("app.trips.notify_trip_created")
+    def test_create_trip_with_title_and_notes(self, mock_notify, auth_client):
+        resp = auth_client.post("/trips/new", data={
+            "destination": "Hawaii",
+            "title": "Summer Vacation",
+            "notes": "Flight UA123",
+            "start_date": "2026-06-01",
+            "end_date": "2026-06-10",
+            "latitude": "21.3069",
+            "longitude": "-157.8583",
+        }, follow_redirects=True)
+        assert b"Trip added!" in resp.data
+        from app.models import Trip
+        trip = Trip.query.filter_by(destination="Hawaii").first()
+        assert trip.title == "Summer Vacation"
+        assert trip.notes == "Flight UA123"
+
+    @patch("app.trips.notify_trip_created")
+    def test_create_trip_empty_title_stored_as_none(self, mock_notify, auth_client):
+        auth_client.post("/trips/new", data={
+            "destination": "Berlin",
+            "title": "",
+            "notes": "",
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-05",
+            "latitude": "52.52",
+            "longitude": "13.405",
+        })
+        from app.models import Trip
+        trip = Trip.query.filter_by(destination="Berlin").first()
+        assert trip.title is None
+        assert trip.notes is None
+
+    def test_title_shown_in_trip_list(self, auth_client, make_trip):
+        make_trip(destination="Rome", title="Anniversary Trip")
+        resp = auth_client.get("/trips")
+        assert b"Anniversary Trip" in resp.data
+        assert b"Rome" in resp.data
+
+    @freeze_time("2026-02-28")
+    def test_title_shown_in_dashboard(self, auth_client, make_person, make_trip):
+        p = make_person(name="Tester")
+        make_trip(destination="London", title="Work Conference",
+                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 15), people=[p])
+        resp = auth_client.get("/")
+        assert b"Work Conference" in resp.data
+        assert b"London" in resp.data
+
+    def test_notes_shown_in_trip_list(self, auth_client, make_trip):
+        make_trip(destination="Tokyo", notes="Hotel: Shinjuku Inn")
+        resp = auth_client.get("/trips")
+        assert b"Hotel: Shinjuku Inn" in resp.data
+
+
 class TestEditTrip:
     @patch("app.trips.notify_trip_created")
     def test_edit_form_renders(self, mock_notify, auth_client, make_trip):
@@ -290,6 +345,40 @@ class TestEditTrip:
         from app.models import Trip
         trip = Trip.query.get(t.id)
         assert trip.people == []
+
+    @patch("app.trips.notify_trip_updated")
+    def test_edit_trip_title_and_notes(self, mock_notify, auth_client, make_trip):
+        t = make_trip(destination="Paris", title="Old Title", notes="Old notes")
+        auth_client.post(f"/trips/{t.id}/edit", data={
+            "destination": "Paris",
+            "title": "New Title",
+            "notes": "New notes",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-05",
+            "latitude": "48.8566",
+            "longitude": "2.3522",
+        })
+        from app.models import Trip
+        trip = Trip.query.get(t.id)
+        assert trip.title == "New Title"
+        assert trip.notes == "New notes"
+
+    @patch("app.trips.notify_trip_updated")
+    def test_edit_trip_clear_title_and_notes(self, mock_notify, auth_client, make_trip):
+        t = make_trip(destination="Paris", title="Has Title", notes="Has notes")
+        auth_client.post(f"/trips/{t.id}/edit", data={
+            "destination": "Paris",
+            "title": "",
+            "notes": "",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-05",
+            "latitude": "48.8566",
+            "longitude": "2.3522",
+        })
+        from app.models import Trip
+        trip = Trip.query.get(t.id)
+        assert trip.title is None
+        assert trip.notes is None
 
     def test_edit_missing_lat_lng(self, auth_client, make_trip):
         t = make_trip(destination="Bad Edit")

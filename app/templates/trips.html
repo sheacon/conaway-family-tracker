@@ -9,7 +9,7 @@
       <tr>
         <th>Dates</th>
         <th>Who</th>
-        <th>Destination</th>
+        <th>Trip</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -18,7 +18,11 @@
       <tr>
         <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
         <td>{{ trip.people | map(attribute='name') | join(', ') or '—' }}</td>
-        <td>{{ trip.destination }}</td>
+        <td>
+          {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destination }}</small>
+          {% else %}{{ trip.destination }}{% endif %}
+          {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
+        </td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>
           <form method="post" action="{{ url_for('trips.delete_trip', id=trip.id) }}" style="display:inline">

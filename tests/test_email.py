@@ -99,6 +99,14 @@ class TestSubject:
         assert "Alice" in result
         assert "Paris" in result
 
+    def test_subject_uses_display_name_with_title(self, app, make_person, make_trip):
+        p = make_person(name="Alice")
+        t = make_trip(destination="Paris", title="Spring Break",
+                      start_date=date(2026, 3, 1), end_date=date(2026, 3, 5), people=[p])
+        result = _subject("New Trip", t)
+        assert "Spring Break" in result
+        assert "Paris" not in result
+
 
 class TestTripHtml:
     def test_contains_destination(self, app, make_person, make_trip):
@@ -109,6 +117,31 @@ class TestTripHtml:
         assert "Bob" in html
         assert "Test Heading" in html
         assert "conaway-family-tracker.fly.dev" in html
+
+    def test_includes_title_when_set(self, app, make_person, make_trip):
+        p = make_person(name="Carol")
+        t = make_trip(destination="Rome", title="Italy Getaway", people=[p])
+        html = _trip_html("Heading", t)
+        assert "Italy Getaway" in html
+        assert "Rome" in html
+
+    def test_excludes_title_when_not_set(self, app, make_person, make_trip):
+        p = make_person(name="Dan")
+        t = make_trip(destination="Rome", people=[p])
+        html = _trip_html("Heading", t)
+        assert "<strong>Trip:</strong>" not in html
+
+    def test_includes_notes_when_set(self, app, make_person, make_trip):
+        p = make_person(name="Eve")
+        t = make_trip(destination="Rome", notes="Hotel: Grand", people=[p])
+        html = _trip_html("Heading", t)
+        assert "Hotel: Grand" in html
+
+    def test_excludes_notes_when_not_set(self, app, make_person, make_trip):
+        p = make_person(name="Frank")
+        t = make_trip(destination="Rome", people=[p])
+        html = _trip_html("Heading", t)
+        assert "<strong>Notes:</strong>" not in html
 
 
 class TestNotifyFunctions:

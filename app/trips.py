@@ -41,13 +41,13 @@ def _current_locations():
             .first()
         )
         next_trip_str = (
-            f"{next_trip.destination} ({next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')})"
+            f"{next_trip.display_name} ({next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')})"
             if next_trip else None
         )
         if active_trip:
             locations.append({
                 "name": person.name,
-                "label": active_trip.destination,
+                "label": active_trip.display_name,
                 "lat": active_trip.latitude,
                 "lng": active_trip.longitude,
                 "traveling": True,
@@ -125,6 +125,8 @@ def new_trip():
             return render_template("trip_form.html", trip=None, people_by_family=people_by_family)
         trip = Trip(
             destination=request.form["destination"],
+            title=request.form.get("title") or None,
+            notes=request.form.get("notes") or None,
             start_date=date.fromisoformat(request.form["start_date"]),
             end_date=date.fromisoformat(request.form["end_date"]),
             latitude=float(request.form["latitude"]),
@@ -152,6 +154,8 @@ def edit_trip(id):
             people_by_family = _people_by_family()
             return render_template("trip_form.html", trip=trip, people_by_family=people_by_family)
         trip.destination = request.form["destination"]
+        trip.title = request.form.get("title") or None
+        trip.notes = request.form.get("notes") or None
         trip.start_date = date.fromisoformat(request.form["start_date"])
         trip.end_date = date.fromisoformat(request.form["end_date"])
         trip.latitude = float(request.form["latitude"])
