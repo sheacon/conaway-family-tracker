@@ -44,10 +44,10 @@ def _current_locations():
         if next_trip:
             next_trip_info = {
                 "display_name": next_trip.display_name,
-                "destination": next_trip.destination,
+                "destination": next_trip.destinations_summary if next_trip.is_multi_stop else next_trip.destination,
                 "title": next_trip.title,
                 "notes": next_trip.notes,
-                "dates": f"{next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d')}",
+                "dates": f"{next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d, %Y')}",
             }
         flight = None
         if active_trip:
