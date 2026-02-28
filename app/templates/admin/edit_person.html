@@ -18,11 +18,9 @@
   <input type="color" id="color" name="color" value="{{ person.color }}">
 
   <label for="location_label">Default Location</label>
-  <fieldset role="group">
-    <input type="text" id="location_label" name="location_label"
-           value="{{ person.default_location_label }}" required>
-    <button type="button" id="geocode-btn">Find on Map</button>
-  </fieldset>
+  <input type="text" id="location_label" name="location_label"
+         value="{{ person.default_location_label }}" required>
+  <button type="button" id="geocode-btn" class="outline" style="margin-top: 0.25rem;">Confirm Location</button>
 
   <div id="preview-map" style="height: 300px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
 

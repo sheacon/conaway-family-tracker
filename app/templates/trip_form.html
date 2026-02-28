@@ -9,11 +9,9 @@
          placeholder="e.g. Spring Break 2026">
 
   <label for="destination">Destination</label>
-  <fieldset role="group">
-    <input type="text" id="destination" name="destination"
-           value="{{ trip.destination if trip else '' }}" required>
-    <button type="button" id="geocode-btn">Find on Map</button>
-  </fieldset>
+  <input type="text" id="destination" name="destination"
+         value="{{ trip.destination if trip else '' }}" required>
+  <button type="button" id="geocode-btn" class="outline" style="margin-top: 0.25rem;">Confirm Location</button>
 
   <div class="grid">
     <div>
