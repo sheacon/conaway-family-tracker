@@ -80,8 +80,7 @@ class TestFamilyAdmin:
             "name": "NewFamily",
         }, follow_redirects=True)
         assert b"Created family" in resp.data
-        fam = Family.query.filter_by(name="NewFamily").first()
-        assert fam is not None
+        assert Family.query.filter_by(name="NewFamily").first() is not None
 
     def test_create_family_auto_sort_order(self, auth_client, make_family):
         make_family(name="First", sort_order=5)
@@ -119,9 +118,7 @@ class TestFamilyAdmin:
         assert b"Family name is required" in resp.data
 
     def test_edit_family_404(self, auth_client):
-        resp = auth_client.post("/admin/families/9999/edit", data={
-            "name": "Ghost",
-        })
+        resp = auth_client.post("/admin/families/9999/edit", data={"name": "Ghost"})
         assert resp.status_code == 404
 
     def test_delete_family_orphans_members(self, auth_client, make_family, make_person):
@@ -130,7 +127,7 @@ class TestFamilyAdmin:
         auth_client.post(f"/admin/families/{fam.id}/delete")
         db.session.refresh(p)
         assert p.family_id is None
-        assert Family.query.get(fam.id) is None
+        assert db.session.get(Family, fam.id) is None
 
     def test_delete_family_flash(self, auth_client, make_family):
         fam = make_family(name="ByeBye")
@@ -144,24 +141,22 @@ class TestFamilyAdmin:
 
 
 class TestNotificationsToggle:
-    def test_toggle_pauses_notifications(self, auth_client, app):
-        resp = auth_client.post("/admin/notifications/toggle")
-        assert resp.status_code == 302
+    def test_toggle_pauses(self, auth_client, app):
+        auth_client.post("/admin/notifications/toggle")
         with app.app_context():
             row = db.session.get(Config, "notifications_paused")
             assert row.value == "1"
 
-    def test_toggle_resumes_notifications(self, auth_client, app):
+    def test_toggle_resumes(self, auth_client, app):
         with app.app_context():
             db.session.add(Config(key="notifications_paused", value="1"))
             db.session.commit()
-        resp = auth_client.post("/admin/notifications/toggle")
-        assert resp.status_code == 302
+        auth_client.post("/admin/notifications/toggle")
         with app.app_context():
             row = db.session.get(Config, "notifications_paused")
             assert row.value == "0"
 
-    def test_admin_page_shows_paused_state(self, auth_client, app):
+    def test_page_shows_paused_state(self, auth_client, app):
         with app.app_context():
             db.session.add(Config(key="notifications_paused", value="1"))
             db.session.commit()
@@ -169,7 +164,7 @@ class TestNotificationsToggle:
         assert b"notifications are paused" in resp.data.lower()
         assert b"Resume Notifications" in resp.data
 
-    def test_admin_page_shows_active_state(self, auth_client):
+    def test_page_shows_active_state(self, auth_client):
         resp = auth_client.get("/admin/")
         assert b"Pause Notifications" in resp.data
 

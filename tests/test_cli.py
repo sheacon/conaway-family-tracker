@@ -39,7 +39,6 @@ class TestSendNotifications:
     @patch("app.cli.notify_trip_ended")
     @patch("app.cli.notify_trip_started")
     def test_same_day_trip_not_ended(self, mock_started, mock_ended, app, make_trip):
-        """Same-day trip: started is called, but ended is NOT (start_date == today filter)."""
         make_trip(destination="DayTrip", start_date=date(2026, 3, 1),
                   end_date=date(2026, 3, 1))
         runner = app.test_cli_runner()
@@ -61,7 +60,7 @@ class TestSendNotifications:
 
     @freeze_time("2026-03-01")
     @patch("app.cli.notify_trip_starting_soon")
-    def test_trips_at_2_days_ignored(self, mock_notify, app, make_trip):
+    def test_2_days_out_ignored(self, mock_notify, app, make_trip):
         make_trip(destination="TwoDays", start_date=date(2026, 3, 3),
                   end_date=date(2026, 3, 6))
         runner = app.test_cli_runner()
@@ -70,7 +69,7 @@ class TestSendNotifications:
 
     @freeze_time("2026-03-01")
     @patch("app.cli.notify_trip_starting_soon")
-    def test_trips_at_4_days_ignored(self, mock_notify, app, make_trip):
+    def test_4_days_out_ignored(self, mock_notify, app, make_trip):
         make_trip(destination="FourDays", start_date=date(2026, 3, 5),
                   end_date=date(2026, 3, 8))
         runner = app.test_cli_runner()
@@ -90,7 +89,7 @@ class TestSendNotifications:
         make_trip(destination="EndTrip", start_date=date(2026, 3, 1),
                   end_date=date(2026, 3, 5))
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
+        runner.invoke(args=["send-notifications"])
         mock_soon.assert_called_once()
         mock_started.assert_called_once()
         mock_ended.assert_called_once()

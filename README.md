@@ -5,10 +5,12 @@ A Flask web app for tracking family travel plans. Members enter upcoming trips, 
 ## Features
 
 - **Interactive map** — Dashboard shows each person's current location with color-coded SVG pin icons
+- **Multi-stop trips** — Plan trips with multiple destinations connected by a route
 - **Trip management** — Create, edit, and delete trips with destination, dates, and travellers
+- **Flight tracking** — Enter flight numbers with auto-links to FlightAware (IATA→ICAO conversion)
 - **Geocoding** — Client-side geocoding via OpenStreetMap Nominatim
-- **Email notifications** — Daily start/end alerts sent via the Resend API
-- **Admin panel** — Manage people and families
+- **Email notifications** — Daily start/end alerts and CRUD notifications via the Resend API
+- **Admin panel** — Manage people, families, and notification settings
 - **Single shared password** — Simple auth via Flask-Login (one password for the whole family)
 
 ## Tech Stack
@@ -19,6 +21,7 @@ A Flask web app for tracking family travel plans. Members enter upcoming trips, 
 - **Deployment:** Docker on Fly.io with a persistent volume
 - **Email:** Resend API
 - **Scheduled jobs:** GitHub Actions cron workflow
+- **Testing:** pytest, freezegun
 
 ## Local Development
 
@@ -33,6 +36,9 @@ flask db upgrade
 
 # Start the dev server
 flask --app app:create_app run
+
+# Run tests
+pytest
 ```
 
 ### Environment Variables
@@ -43,22 +49,35 @@ flask --app app:create_app run
 | `APP_PASSWORD` | `"family"` | Shared login password |
 | `DATABASE_URL` | `sqlite:///app.db` | Database connection string |
 | `RESEND_API_KEY` | *(none)* | Resend email API key |
-| `RESEND_FROM_EMAIL` | `"Where Are Family A <notifications@updates.sheabrennan.com>"` | Sender address |
+| `RESEND_FROM_EMAIL` | *(none)* | Sender address |
 
 ## Project Structure
 
 ```
 app/
-  __init__.py      # App factory, DB init, family member seeding
-  models.py        # SQLAlchemy models (Family, Person, Trip, Config)
+  __init__.py      # App factory, DB/login/migrate init
+  models.py        # SQLAlchemy models (Family, Person, Trip, TripStop, Config)
   auth.py          # /login, /logout blueprint
   trips.py         # Dashboard, trip CRUD blueprint
   admin.py         # /admin people & family management
   email.py         # Resend API email helpers
   cli.py           # flask send-notifications CLI command
+  filters.py       # Jinja2 template filters (flight_link, group_by_family)
+  seed.py          # Default family member and family seeding
   templates/       # Jinja2 templates (Pico CSS v2)
   static/style.css # Custom styles and map styling
+tests/
+  conftest.py      # Fixtures and test helpers
+  test_app_factory.py
+  test_auth.py
+  test_admin.py
+  test_models.py
+  test_trips.py
+  test_trip_stops.py
+  test_email.py
+  test_cli.py
 migrations/        # Alembic migrations (Flask-Migrate)
+config.py          # Flask configuration from env vars
 Dockerfile         # Python 3.14-slim container
 fly.toml           # Fly.io deployment config
 ```
@@ -70,20 +89,12 @@ The app runs on Fly.io (`ord` region) with a persistent SQLite volume mounted at
 ### Initial Setup
 
 ```bash
-# Install the Fly CLI (https://fly.io/docs/flyctl/install/)
-# Then authenticate
 fly auth login
-
-# Launch the app (creates the app and volume on first run)
 fly launch
-
-# Create the persistent volume for SQLite
 fly volumes create data --region ord --size 1
 ```
 
 ### Set Secrets
-
-Production secrets are set via `fly secrets` (not in `fly.toml`):
 
 ```bash
 fly secrets set SECRET_KEY="<generate-a-strong-random-key>"
@@ -105,17 +116,10 @@ Migrations run automatically on startup (`flask db upgrade` in the Dockerfile `C
 ### Useful Commands
 
 ```bash
-# View logs
-fly logs
-
-# SSH into the running machine
-fly ssh console
-
-# Open the app in your browser
-fly open
-
-# Check app status
-fly status
+fly logs          # View logs
+fly ssh console   # SSH into the running machine
+fly open          # Open the app in browser
+fly status        # Check app status
 ```
 
 ### Scheduled Notifications

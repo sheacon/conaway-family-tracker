@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime, timezone
 
 from app import db
 
@@ -36,7 +36,7 @@ class Trip(db.Model):
     end_date = db.Column(db.Date, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     outbound_flight = db.Column(db.String(100), nullable=True)
     return_flight = db.Column(db.String(100), nullable=True)
     people = db.relationship("Person", secondary=trip_person, backref="trips")

@@ -59,12 +59,12 @@ class TestProtectedRoutes:
 
 
 class TestLoadUser:
-    def test_load_user_valid(self, app):
+    def test_valid_user(self, app):
         from app.auth import load_user
         user = load_user("family")
         assert user is not None
         assert user.id == "family"
 
-    def test_load_user_invalid(self, app):
+    def test_invalid_user(self, app):
         from app.auth import load_user
         assert load_user("nobody") is None

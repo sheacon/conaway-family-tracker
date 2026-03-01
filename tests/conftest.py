@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["APP_PASSWORD"] = "testpass"
@@ -7,8 +8,7 @@ os.environ["RESEND_FROM_EMAIL"] = "test@example.com"
 
 import pytest
 
-from app import db as _db
-from app import create_app
+from app import create_app, db as _db
 from app.models import Family, Person, Trip, TripStop
 
 
@@ -80,8 +80,6 @@ def make_person(app):
 
 @pytest.fixture()
 def make_trip(app):
-    from datetime import date
-
     def _make(destination="Paris", start_date=None, end_date=None,
               lat=48.8566, lng=2.3522, people=None, title=None, notes=None,
               outbound_flight=None, return_flight=None):
@@ -111,8 +109,6 @@ def make_trip(app):
 
 @pytest.fixture()
 def make_stop(app):
-    from datetime import date
-
     def _make(trip, order=0, destination="Nashville", lat=36.16, lng=-86.78,
               start_date=None, end_date=None):
         if start_date is None:
@@ -135,3 +131,15 @@ def make_stop(app):
     return _make
 
 
+def stop_form_data(destination, start_date, end_date, lat, lng, **extra):
+    """Build form data for a single-stop trip."""
+    data = {
+        "stop_count": "1",
+        "stop_destination_0": destination,
+        "stop_latitude_0": str(lat),
+        "stop_longitude_0": str(lng),
+        "stop_start_date_0": start_date,
+        "stop_end_date_0": end_date,
+    }
+    data.update(extra)
+    return data

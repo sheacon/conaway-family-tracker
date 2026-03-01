@@ -15,6 +15,9 @@ pip install -r requirements.txt
 # Run dev server
 flask --app app:create_app run
 
+# Run tests
+pytest
+
 # Run database migrations
 flask db upgrade
 
@@ -28,31 +31,34 @@ flask send-notifications
 flask db upgrade && gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
 ```
 
-No test suite exists. No npm/bundler — all frontend dependencies are loaded from CDN.
-
 ## Architecture
 
 **Python/Flask app with Jinja2 templates, no frontend build step.**
 
-- `app/__init__.py` — App factory (`create_app()`), initializes db/login/migrate, seeds default family members on first run
-- `app/models.py` — SQLAlchemy models: `Family`, `Person`, `Trip`, `Config`, plus `trip_person` join table
+- `app/__init__.py` — App factory (`create_app()`), initializes db/login/migrate, registers blueprints and filters
+- `app/models.py` — SQLAlchemy models: `Family`, `Person`, `Trip`, `TripStop`, `Config`, plus `trip_person` join table
 - `app/auth.py` — Blueprint: `/login`, `/logout`. Single shared password via `APP_PASSWORD` env var
 - `app/trips.py` — Blueprint: `/` (dashboard with map), `/trips` (list), `/trips/new`, `/trips/<id>/edit`, `/trips/<id>/delete`
-- `app/admin.py` — Blueprint at `/admin`: CRUD for people and families
+- `app/admin.py` — Blueprint at `/admin`: CRUD for people and families, notification toggle
 - `app/email.py` — Resend API email helpers for trip notifications
 - `app/cli.py` — `flask send-notifications` CLI command for trip start/end emails (scheduled via GitHub Actions)
+- `app/filters.py` — Jinja2 template filters: `flight_link` (FlightAware URLs), `group_by_family`
+- `app/seed.py` — Seeds default family members and families on first run
 - `app/templates/` — Jinja2 templates using Pico CSS v2
 - `app/static/style.css` — Custom styles and map styling
+- `config.py` — Flask configuration from environment variables
 - `migrations/` — Alembic migration files managed by Flask-Migrate
+- `tests/` — pytest test suite with freezegun for time-dependent tests
 
 ## Key Design Decisions
 
 - **Single-password auth**: One shared `FamilyUser` with id `"family"`, password from `APP_PASSWORD` env var
 - **SQLite everywhere**: Local dev uses `app.db` in repo root; production uses `/data/app.db` on a Fly.io persistent volume
+- **Multi-stop trips**: Trips have ordered `TripStop` records. Denormalized fields on `Trip` (`destination`, `latitude`, `longitude`, `start_date`, `end_date`) are synced from stops via `sync_from_stops()`
 - **Overlapping trips**: When a person has overlapping trips on the same day, before noon ET shows the first trip, after noon ET shows the last trip
 - **Map pins**: Custom SVG pin icons with per-person colors; co-located people get pixel-offset pins
 - **Geocoding**: Client-side Nominatim (OpenStreetMap) via fetch in trip form
-- **Seeding**: `_seed_people()` in `app/__init__.py` auto-seeds family members using raw SQL on first run
+- **Seeding**: `seed_people()` in `app/seed.py` auto-seeds family members on first run; checks for table existence to survive pre-migration state
 - **Scheduled notifications**: GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs `flask send-notifications` daily at 8 AM ET. It wakes the Fly.io machine via HTTP (since `auto_stop_machines` is enabled), then SSHes in to run the command. Requires an org-scoped `FLY_API_TOKEN` GitHub secret (deploy tokens lack SSH access)
 
 ## Environment Variables
@@ -63,4 +69,4 @@ No test suite exists. No npm/bundler — all frontend dependencies are loaded fr
 | `APP_PASSWORD` | `"family"` | Shared login password |
 | `DATABASE_URL` | `sqlite:///app.db` | Database connection string |
 | `RESEND_API_KEY` | (none) | Resend email API key |
-| `RESEND_FROM_EMAIL` | `"Where Are Family A <notifications@updates.sheabrennan.com>"` | Sender address |
+| `RESEND_FROM_EMAIL` | (none) | Sender address |

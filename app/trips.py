@@ -223,12 +223,7 @@ def edit_trip(id):
             stop.trip_id = trip.id
             db.session.add(stop)
         db.session.flush()
-        # Sync denormalized fields
-        trip.destination = stops[0].destination
-        trip.latitude = stops[0].latitude
-        trip.longitude = stops[0].longitude
-        trip.start_date = stops[0].start_date
-        trip.end_date = stops[-1].end_date
+        trip.sync_from_stops()
         person_ids = request.form.getlist("people")
         trip.people = Person.query.filter(Person.id.in_(person_ids)).all() if person_ids else []
         db.session.commit()
