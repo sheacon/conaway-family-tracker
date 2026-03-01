@@ -33,6 +33,13 @@ table td a[role="button"] {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   margin-right: 0.25rem;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+table td form button {
+  width: 100%;
 }
 
 .checkbox-group {

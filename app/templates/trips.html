@@ -46,7 +46,7 @@
         </td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>
-          <form method="post" action="{{ url_for('trips.delete_trip', id=trip.id) }}" style="display:inline">
+          <form method="post" action="{{ url_for('trips.delete_trip', id=trip.id) }}">
             <button type="submit" class="outline secondary" onclick="return confirm('Delete this trip?')">Delete</button>
           </form>
         </td>
