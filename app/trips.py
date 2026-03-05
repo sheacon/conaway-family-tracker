@@ -8,6 +8,7 @@ from flask_login import login_required
 from app import db
 from app.models import Trip, TripStop, Person, Family
 from app.email import notify_trip_created, notify_trip_updated, notify_trip_deleted
+from app.filters import format_date_range
 
 bp = Blueprint("trips", __name__)
 
@@ -47,7 +48,7 @@ def _current_locations():
                 "destination": next_trip.destinations_summary if next_trip.is_multi_stop else next_trip.destination,
                 "title": next_trip.title,
                 "notes": next_trip.notes,
-                "dates": f"{next_trip.start_date.strftime('%b %-d')} – {next_trip.end_date.strftime('%b %-d, %Y')}",
+                "dates": format_date_range(next_trip.start_date, next_trip.end_date),
             }
         flight = None
         if active_trip:
@@ -75,7 +76,7 @@ def _current_locations():
                 stop_info = f"{current_stop.destination} (Stop {stop_num} of {len(active_trip.stops)})"
 
             trip_destination = active_trip.destinations_summary if active_trip.is_multi_stop else active_trip.destination
-            trip_dates = f"{active_trip.start_date.strftime('%b %-d')} – {active_trip.end_date.strftime('%b %-d, %Y')}"
+            trip_dates = format_date_range(active_trip.start_date, active_trip.end_date)
 
             locations.append({
                 "name": person.name,

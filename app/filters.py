@@ -1,10 +1,33 @@
 from collections import OrderedDict
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from markupsafe import Markup
 
 
+def _format_date(d):
+    """Format a date with day-of-week, omitting year if it's the current year."""
+    today = datetime.now(ZoneInfo("America/New_York")).date()
+    if d.year == today.year:
+        return d.strftime("%a, %b %-d")
+    return d.strftime("%a, %b %-d, %Y")
+
+
+def format_date_range(start_date, end_date):
+    """Format a date range, omitting year for current-year dates."""
+    return f"{_format_date(start_date)} – {_format_date(end_date)}"
+
+
 def register_filters(app):
     """Register custom Jinja2 template filters."""
+
+    @app.template_filter("format_date")
+    def format_date_filter(d):
+        return _format_date(d)
+
+    @app.template_filter("date_range")
+    def date_range_filter(trip):
+        return format_date_range(trip.start_date, trip.end_date)
 
     @app.template_filter("flight_link")
     def flight_link(flight_number: str) -> str:

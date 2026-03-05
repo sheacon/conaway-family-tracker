@@ -15,7 +15,7 @@
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
           {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
           {% if trip.is_active %} <mark>in progress</mark>{% endif %}
-          <br><small>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</small>
+          <br><small>{{ trip | date_range }}</small>
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
         <td>

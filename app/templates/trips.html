@@ -16,7 +16,7 @@
     <tbody>
       {% for trip in trips %}
       <tr>
-        <td>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</td>
+        <td>{{ trip | date_range }}</td>
         <td>
           {% set groups = trip.people | group_by_family %}
           {% if groups %}
@@ -38,7 +38,7 @@
           {% if trip.is_multi_stop %}
             <br><small>
             {% for stop in trip.stops %}
-              &nbsp;&nbsp;{{ stop.destination }}: {{ stop.start_date.strftime('%b %-d') }}–{{ stop.end_date.strftime('%b %-d') }}{% if not loop.last %}<br>{% endif %}
+              &nbsp;&nbsp;{{ stop.destination }}: {{ stop.start_date | format_date }}–{{ stop.end_date | format_date }}{% if not loop.last %}<br>{% endif %}
             {% endfor %}
             </small>
           {% endif %}
