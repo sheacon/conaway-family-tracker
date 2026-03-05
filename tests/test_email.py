@@ -78,15 +78,15 @@ class TestFormatPeople:
 
 class TestFormatDates:
     def test_date_range(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
+        t = make_trip(start_date=date(2027, 3, 1), end_date=date(2027, 3, 5))
         result = _format_dates(t)
-        assert "Mar 1, 2026" in result
-        assert "Mar 5, 2026" in result
+        assert "Mon, Mar 1, 2027" in result
+        assert "Fri, Mar 5, 2027" in result
         assert "–" in result
 
     def test_same_date(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 1))
-        assert _format_dates(t) == "Mar 1, 2026"
+        t = make_trip(start_date=date(2027, 3, 1), end_date=date(2027, 3, 1))
+        assert _format_dates(t) == "Mon, Mar 1, 2027"
 
 
 class TestSubject:
