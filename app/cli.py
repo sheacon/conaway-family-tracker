@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import click
 from flask.cli import with_appcontext
@@ -11,7 +12,7 @@ from app.email import notify_trip_starting_soon, notify_trip_started, notify_tri
 @with_appcontext
 def send_notifications():
     """Send daily email notifications for upcoming and ending trips."""
-    today = date.today()
+    today = datetime.now(ZoneInfo("America/New_York")).date()
 
     soon = today + timedelta(days=3)
     for trip in Trip.query.filter(Trip.start_date == soon).all():

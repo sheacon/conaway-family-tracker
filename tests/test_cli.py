@@ -5,7 +5,7 @@ from freezegun import freeze_time
 
 
 class TestSendNotifications:
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     @patch("app.cli.notify_trip_starting_soon")
     def test_trip_starting_in_3_days(self, mock_notify, app, make_trip):
         make_trip(destination="Soon", start_date=date(2026, 3, 4),
@@ -15,7 +15,7 @@ class TestSendNotifications:
         mock_notify.assert_called_once()
         assert "Starting soon: Soon" in result.output
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     @patch("app.cli.notify_trip_started")
     def test_trip_starting_today(self, mock_notify, app, make_trip):
         make_trip(destination="Today", start_date=date(2026, 3, 1),
@@ -25,7 +25,7 @@ class TestSendNotifications:
         mock_notify.assert_called_once()
         assert "Starting today: Today" in result.output
 
-    @freeze_time("2026-03-05")
+    @freeze_time("2026-03-05 12:00:00")
     @patch("app.cli.notify_trip_ended")
     def test_trip_ending_today(self, mock_notify, app, make_trip):
         make_trip(destination="Ending", start_date=date(2026, 3, 1),
@@ -35,7 +35,7 @@ class TestSendNotifications:
         mock_notify.assert_called_once()
         assert "Ended today: Ending" in result.output
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     @patch("app.cli.notify_trip_ended")
     @patch("app.cli.notify_trip_started")
     def test_same_day_trip_not_ended(self, mock_started, mock_ended, app, make_trip):
@@ -46,7 +46,7 @@ class TestSendNotifications:
         mock_started.assert_called_once()
         mock_ended.assert_not_called()
 
-    @freeze_time("2026-03-10")
+    @freeze_time("2026-03-10 12:00:00")
     @patch("app.cli.notify_trip_starting_soon")
     @patch("app.cli.notify_trip_started")
     @patch("app.cli.notify_trip_ended")
@@ -58,7 +58,7 @@ class TestSendNotifications:
         mock_ended.assert_not_called()
         assert "Done." in result.output
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     @patch("app.cli.notify_trip_starting_soon")
     def test_2_days_out_ignored(self, mock_notify, app, make_trip):
         make_trip(destination="TwoDays", start_date=date(2026, 3, 3),
@@ -67,7 +67,7 @@ class TestSendNotifications:
         runner.invoke(args=["send-notifications"])
         mock_notify.assert_not_called()
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     @patch("app.cli.notify_trip_starting_soon")
     def test_4_days_out_ignored(self, mock_notify, app, make_trip):
         make_trip(destination="FourDays", start_date=date(2026, 3, 5),
@@ -76,7 +76,7 @@ class TestSendNotifications:
         runner.invoke(args=["send-notifications"])
         mock_notify.assert_not_called()
 
-    @freeze_time("2026-03-05")
+    @freeze_time("2026-03-05 12:00:00")
     @patch("app.cli.notify_trip_ended")
     @patch("app.cli.notify_trip_started")
     @patch("app.cli.notify_trip_starting_soon")
@@ -94,7 +94,7 @@ class TestSendNotifications:
         mock_started.assert_called_once()
         mock_ended.assert_called_once()
 
-    @freeze_time("2026-03-10")
+    @freeze_time("2026-03-10 12:00:00")
     def test_output_done(self, app):
         runner = app.test_cli_runner()
         result = runner.invoke(args=["send-notifications"])

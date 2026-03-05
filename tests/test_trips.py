@@ -1,6 +1,7 @@
 from collections import OrderedDict
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from freezegun import freeze_time
 
@@ -20,7 +21,7 @@ class TestDashboard:
         assert b"Alice" in resp.data
         assert b"NYC" in resp.data
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_active_trip_location(self, auth_client, make_person, make_trip):
         p = make_person(name="Bob")
         make_trip(destination="Tokyo", start_date=date(2026, 3, 1),
@@ -28,7 +29,17 @@ class TestDashboard:
         resp = auth_client.get("/")
         assert b"Tokyo" in resp.data
 
-    @freeze_time("2026-02-28")
+    @freeze_time("2026-03-03 12:00:00")
+    def test_active_trip_in_planned_section(self, auth_client, make_person, make_trip):
+        p = make_person(name="Active")
+        make_trip(destination="Rome", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p])
+        resp = auth_client.get("/")
+        assert b"Planned Trips" in resp.data
+        assert b"Rome" in resp.data
+        assert b"in progress" in resp.data
+
+    @freeze_time("2026-02-28 12:00:00")
     def test_upcoming_trips_shown(self, auth_client, make_person, make_trip):
         p = make_person(name="Carol")
         make_trip(destination="London", start_date=date(2026, 3, 10),
@@ -36,7 +47,7 @@ class TestDashboard:
         resp = auth_client.get("/")
         assert b"London" in resp.data
 
-    @freeze_time("2026-02-28")
+    @freeze_time("2026-02-28 12:00:00")
     def test_upcoming_trips_show_title_and_notes(self, auth_client, make_person, make_trip):
         p = make_person(name="Eve")
         make_trip(destination="Paris", title="Spring Break", notes="Hotel Marais",
@@ -58,7 +69,7 @@ class TestDashboard:
 
 
 class TestCurrentLocations:
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_no_active_trip(self, app, make_person):
         from app.trips import _current_locations
         make_person(name="Zara", location_label="Home", lat=1.0, lng=2.0)
@@ -67,7 +78,7 @@ class TestCurrentLocations:
         assert loc["label"] == "Home"
         assert loc["traveling"] is False
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_active_trip(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="Yuri")
@@ -102,7 +113,7 @@ class TestCurrentLocations:
         loc = next(l for l in locs if l["name"] == "Wendy")
         assert loc["label"] == "TripB"
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_next_trip_info(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="Victor")
@@ -113,7 +124,7 @@ class TestCurrentLocations:
         assert loc["next_trip"]["display_name"] == "Future"
         assert "Apr" in loc["next_trip"]["dates"]
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_next_trip_with_title(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="Vera")
@@ -125,7 +136,41 @@ class TestCurrentLocations:
         assert loc["next_trip"]["title"] == "Japan Trip"
         assert loc["next_trip"]["notes"] == "ANA flight"
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-05 03:00:00", tz_offset=0)
+    def test_utc_ahead_of_et_trip_not_active(self, app, make_person, make_trip):
+        """At 3 AM UTC Mar 5 (10 PM ET Mar 4), a trip starting Mar 5 should NOT be active."""
+        from app.trips import _current_locations
+        p = make_person(name="TimezoneTest")
+        make_trip(destination="Future Place", start_date=date(2026, 3, 5),
+                  end_date=date(2026, 3, 10), people=[p])
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "TimezoneTest")
+        assert loc["traveling"] is False
+        assert loc["label"] == "Home"
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_traveling_includes_trip_dates(self, app, make_person, make_trip):
+        from app.trips import _current_locations
+        p = make_person(name="Dated")
+        make_trip(destination="Berlin", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p])
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Dated")
+        assert "Mar" in loc["trip_dates"]
+        assert loc["trip_destination"] == "Berlin"
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_traveling_with_title_shows_destination(self, app, make_person, make_trip):
+        from app.trips import _current_locations
+        p = make_person(name="Titled")
+        make_trip(destination="Berlin", title="Work Trip",
+                  start_date=date(2026, 3, 1), end_date=date(2026, 3, 5), people=[p])
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Titled")
+        assert loc["label"] == "Work Trip"
+        assert loc["trip_destination"] == "Berlin"
+
+    @freeze_time("2026-03-03 12:00:00")
     def test_color_and_family(self, app, make_family, make_person):
         from app.trips import _current_locations
         fam = make_family(name="TestFam", sort_order=1)
@@ -391,7 +436,7 @@ class TestDeleteTrip:
 
 
 class TestFlightDashboard:
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     def test_outbound_on_start_date(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="DepartDay")
@@ -403,7 +448,7 @@ class TestFlightDashboard:
         assert loc["flight"]["number"] == "NH100"
         assert loc["flight"]["label"] == "Outbound"
 
-    @freeze_time("2026-03-05")
+    @freeze_time("2026-03-05 12:00:00")
     def test_return_on_end_date(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="ReturnDay")
@@ -415,7 +460,7 @@ class TestFlightDashboard:
         assert loc["flight"]["number"] == "NH101"
         assert loc["flight"]["label"] == "Return"
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_no_flight_on_middle_day(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="MidTrip")
@@ -426,7 +471,7 @@ class TestFlightDashboard:
         loc = next(l for l in locs if l["name"] == "MidTrip")
         assert loc["flight"] is None
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     def test_multi_leg_flight(self, app, make_person, make_trip):
         from app.trips import _current_locations
         p = make_person(name="MultiOut")
@@ -447,7 +492,7 @@ class TestFlightDashboard:
         resp = auth_client.get("/trips")
         assert b"Hotel: Shinjuku Inn" in resp.data
 
-    @freeze_time("2026-02-28")
+    @freeze_time("2026-02-28 12:00:00")
     def test_title_shown_in_dashboard(self, auth_client, make_person, make_trip):
         p = make_person(name="Tester")
         make_trip(destination="London", title="Work Conference",

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% if upcoming %}
-<h2>Upcoming Trips</h2>
+<h2>Planned Trips</h2>
 <div class="upcoming-scroll">
 <figure>
   <table>
@@ -14,6 +14,7 @@
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
           {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
+          {% if trip.is_active %} <mark>in progress</mark>{% endif %}
           <br><small>{{ trip.start_date.strftime('%b %-d') }} – {{ trip.end_date.strftime('%b %-d, %Y') }}</small>
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
@@ -60,6 +61,10 @@
         </td>
         <td>
           {{ loc.label }}{% if loc.traveling %} <mark>traveling</mark>{% endif %}
+          {% if loc.traveling %}
+            {% if loc.trip_destination != loc.label %}<br><small>{{ loc.trip_destination }}</small>{% endif %}
+            <br><small>{{ loc.trip_dates }}</small>
+          {% endif %}
           {% if loc.stop_info %}<br><small>{{ loc.stop_info }}</small>{% endif %}
           {% if loc.flight %}
             <br><small>&#9992; {{ loc.flight.number | flight_link }} ({{ loc.flight.label }})</small>

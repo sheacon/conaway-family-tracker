@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from freezegun import freeze_time
@@ -64,37 +65,37 @@ class TestTrip:
         assert t.id is not None
         assert t.destination == "Rome"
 
-    @freeze_time("2026-03-03")
+    @freeze_time("2026-03-03 12:00:00")
     def test_is_active_in_range(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_active is True
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     def test_is_active_on_start(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_active is True
 
-    @freeze_time("2026-03-05")
+    @freeze_time("2026-03-05 12:00:00")
     def test_is_active_on_end(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_active is True
 
-    @freeze_time("2026-02-28")
+    @freeze_time("2026-02-28 12:00:00")
     def test_is_active_before_start(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_active is False
 
-    @freeze_time("2026-03-06")
+    @freeze_time("2026-03-06 12:00:00")
     def test_is_active_after_end(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_active is False
 
-    @freeze_time("2026-02-28")
+    @freeze_time("2026-02-28 12:00:00")
     def test_is_upcoming(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_upcoming is True
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     def test_is_upcoming_false_on_start(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
         assert t.is_upcoming is False
@@ -128,7 +129,7 @@ class TestTrip:
         t = make_trip()
         assert t.people == []
 
-    @freeze_time("2026-03-01")
+    @freeze_time("2026-03-01 12:00:00")
     def test_single_day_trip_active(self, app, make_trip):
         t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 1))
         assert t.is_active is True
@@ -142,6 +143,24 @@ class TestTrip:
         t = make_trip()
         assert t.outbound_flight is None
         assert t.return_flight is None
+
+    @freeze_time("2026-03-05 03:00:00", tz_offset=0)
+    def test_is_active_uses_et_not_utc(self, app, make_trip):
+        """At 3 AM UTC Mar 5 (10 PM ET Mar 4), a trip starting Mar 5 should NOT be active."""
+        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
+        assert t.is_active is False
+
+    @freeze_time("2026-03-05 03:00:00", tz_offset=0)
+    def test_is_upcoming_uses_et_not_utc(self, app, make_trip):
+        """At 3 AM UTC Mar 5 (10 PM ET Mar 4), a trip starting Mar 5 should be upcoming."""
+        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
+        assert t.is_upcoming is True
+
+    @freeze_time("2026-03-11 03:00:00", tz_offset=0)
+    def test_is_active_not_ended_early_in_et(self, app, make_trip):
+        """At 3 AM UTC Mar 11 (10 PM ET Mar 10), a trip ending Mar 10 should still be active."""
+        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
+        assert t.is_active is True
 
 
 class TestFlightUrl:

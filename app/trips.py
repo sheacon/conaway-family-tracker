@@ -14,7 +14,7 @@ bp = Blueprint("trips", __name__)
 
 def _current_locations():
     """Return a list of dicts with each person's current location info."""
-    today = date.today()
+    today = datetime.now(ZoneInfo("America/New_York")).date()
     people = Person.query.order_by(Person.name).all()
     locations = []
     for person in people:
@@ -74,6 +74,9 @@ def _current_locations():
                 )
                 stop_info = f"{current_stop.destination} (Stop {stop_num} of {len(active_trip.stops)})"
 
+            trip_destination = active_trip.destinations_summary if active_trip.is_multi_stop else active_trip.destination
+            trip_dates = f"{active_trip.start_date.strftime('%b %-d')} – {active_trip.end_date.strftime('%b %-d, %Y')}"
+
             locations.append({
                 "name": person.name,
                 "label": active_trip.display_name,
@@ -86,6 +89,8 @@ def _current_locations():
                 "next_trip": next_trip_info,
                 "flight": flight,
                 "stop_info": stop_info,
+                "trip_destination": trip_destination,
+                "trip_dates": trip_dates,
             })
         else:
             locations.append({
@@ -117,10 +122,10 @@ def _people_by_family():
 @bp.route("/")
 @login_required
 def index():
-    today = date.today()
+    today = datetime.now(ZoneInfo("America/New_York")).date()
     locations = _current_locations()
     upcoming = (
-        Trip.query.filter(Trip.start_date > today)
+        Trip.query.filter(Trip.end_date >= today)
         .order_by(Trip.start_date)
         .all()
     )

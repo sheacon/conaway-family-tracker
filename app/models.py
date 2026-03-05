@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from app import db
 
@@ -77,12 +78,12 @@ class Trip(db.Model):
 
     @property
     def is_active(self):
-        today = date.today()
+        today = datetime.now(ZoneInfo("America/New_York")).date()
         return self.start_date <= today <= self.end_date
 
     @property
     def is_upcoming(self):
-        return self.start_date > date.today()
+        return self.start_date > datetime.now(ZoneInfo("America/New_York")).date()
 
     @property
     def is_multi_stop(self) -> bool:
@@ -102,7 +103,7 @@ class Trip(db.Model):
     def current_stop(self, for_date: date = None):
         """Return the TripStop active on for_date, with gap fallback."""
         if for_date is None:
-            for_date = date.today()
+            for_date = datetime.now(ZoneInfo("America/New_York")).date()
         if not self.stops:
             return None
         for stop in self.stops:

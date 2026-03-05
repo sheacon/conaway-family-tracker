@@ -91,7 +91,7 @@ class TestMultiStopForm:
 
 
 class TestMultiStopDisplay:
-    @freeze_time("2026-03-13")
+    @freeze_time("2026-03-13 12:00:00")
     def test_current_location_uses_current_stop(self, auth_client, app,
                                                  make_person, make_trip, make_stop, make_family):
         fam = make_family(name="Test")
