@@ -1,5 +1,16 @@
 /* Conaway Family Tracker */
 
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  color: var(--pico-color);
+}
+
 nav ul li a,
 nav ul li a strong {
   font-size: 1.5rem;
