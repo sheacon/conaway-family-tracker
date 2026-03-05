@@ -29,7 +29,7 @@
         {% else %}
           <li><a href="{{ url_for('auth.login') }}">Login</a></li>
         {% endif %}
-        <li><button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">&#9790;</button></li>
+        <li><button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button></li>
       </ul>
     </nav>
   </header>
@@ -47,7 +47,7 @@
       var btn = document.getElementById('theme-toggle');
       function updateIcon() {
         var theme = document.documentElement.getAttribute('data-theme');
-        btn.innerHTML = theme === 'dark' ? '&#9728;' : '&#9790;';
+        btn.textContent = theme === 'dark' ? '☀️' : '🌙';
       }
       updateIcon();
       btn.addEventListener('click', function() {
