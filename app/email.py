@@ -4,7 +4,7 @@ import resend
 from flask import current_app
 
 from app import db
-from app.filters import _format_date, format_date_range
+from app.filters import format_date, format_date_range
 from app.models import Config, Person, Trip
 
 logger = logging.getLogger(__name__)
@@ -44,8 +44,6 @@ def _format_people(trip):
 
 
 def _format_dates(trip):
-    if trip.start_date == trip.end_date:
-        return _format_date(trip.start_date)
     return format_date_range(trip.start_date, trip.end_date)
 
 
@@ -63,7 +61,7 @@ def _trip_html(heading, trip):
         html += f"<p><strong>Route:</strong> {trip.destinations_summary}</p>"
         html += "<ol>"
         for stop in trip.stops:
-            html += f"<li>{stop.destination}: {_format_date(stop.start_date)} – {_format_date(stop.end_date)}</li>"
+            html += f"<li>{stop.destination}: {format_date(stop.start_date)} – {format_date(stop.end_date)}</li>"
         html += "</ol>"
     else:
         html += f"<p><strong>Destination:</strong> {trip.destination}</p>"

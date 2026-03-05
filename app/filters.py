@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from markupsafe import Markup
 
 
-def _format_date(d):
+def format_date(d):
     """Format a date with day-of-week, omitting year if it's the current year."""
     today = datetime.now(ZoneInfo("America/New_York")).date()
     if d.year == today.year:
@@ -15,7 +15,9 @@ def _format_date(d):
 
 def format_date_range(start_date, end_date):
     """Format a date range, omitting year for current-year dates."""
-    return f"{_format_date(start_date)} – {_format_date(end_date)}"
+    if start_date == end_date:
+        return format_date(start_date)
+    return f"{format_date(start_date)} – {format_date(end_date)}"
 
 
 def register_filters(app):
@@ -23,7 +25,7 @@ def register_filters(app):
 
     @app.template_filter("format_date")
     def format_date_filter(d):
-        return _format_date(d)
+        return format_date(d)
 
     @app.template_filter("date_range")
     def date_range_filter(trip):
