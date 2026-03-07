@@ -163,7 +163,7 @@
       const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
       const status = loc.travel_day ? ' <em>(in transit)</em>' : (loc.traveling ? ' <em>(traveling)</em>' : '');
       marker.bindPopup(`<strong>${loc.name}</strong><br>${loc.label}${status}`);
-      marker.bindTooltip(loc.abbreviation, { permanent: true, direction: 'top', className: 'pin-label', offset: [offsetX, -41 + offsetY] });
+      marker.bindTooltip(loc.abbreviation, { permanent: true, direction: 'top', className: 'pin-label', offset: [0, 0] });
       bounds.push([loc.lat, loc.lng]);
     });
   });
