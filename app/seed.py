@@ -1,4 +1,5 @@
 from sqlalchemy import inspect
+from sqlalchemy.exc import OperationalError
 
 from app import db
 from app.models import Family, Person
@@ -7,6 +8,11 @@ FAMILY_MEMBERS = [
     "Person A", "Person B", "Person C", "Person D", "Person E",
     "Person F", "Person G", "Person H", "Person I", "Person J",
 ]
+
+ABBREVIATIONS = {
+    "Person A": "Mi", "Person B": "Al", "Person C": "Sh", "Person D": "Ma", "Person E": "Wi",
+    "Person F": "Le", "Person G": "Ha", "Person H": "Go", "Person I": "Re", "Person J": "A3",
+}
 
 COLOR_PALETTE = [
     "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
@@ -26,18 +32,39 @@ def seed_people() -> None:
     if not inspector.has_table("person"):
         return
 
-    if Person.query.first() is not None:
+    try:
+        existing = Person.query.first()
+    except OperationalError:
+        return
+    if existing is not None:
         _backfill_colors()
         _backfill_families()
+        _backfill_abbreviations()
         return
 
     for i, name in enumerate(FAMILY_MEMBERS):
         db.session.add(Person(
             name=name,
             color=COLOR_PALETTE[i % len(COLOR_PALETTE)],
+            abbreviation=ABBREVIATIONS.get(name),
         ))
     db.session.commit()
     _seed_families()
+
+
+def _backfill_abbreviations() -> None:
+    """Set abbreviations for known seed people that don't have one yet."""
+    inspector = inspect(db.engine)
+    if not inspector.has_table("person"):
+        return
+    cols = [c["name"] for c in inspector.get_columns("person")]
+    if "abbreviation" not in cols:
+        return
+    for name, abbr in ABBREVIATIONS.items():
+        person = Person.query.filter_by(name=name).first()
+        if person and not person.abbreviation:
+            person.abbreviation = abbr
+    db.session.commit()
 
 
 def _backfill_colors() -> None:

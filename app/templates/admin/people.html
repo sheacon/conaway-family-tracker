@@ -17,6 +17,7 @@
   <fieldset role="group">
     <input type="text" name="name" placeholder="New person's name" required>
     <input type="email" name="email" placeholder="Email (optional)">
+    <input type="text" name="abbreviation" placeholder="Abbr" maxlength="10" style="max-width: 5rem;">
     <select name="family_id">
       <option value="">No family</option>
       {% for fam in families %}
@@ -31,6 +32,7 @@
     <thead>
       <tr>
         <th>Name</th>
+        <th>Abbr</th>
         <th>Email</th>
         <th>Family</th>
         <th>Default Location</th>
@@ -42,6 +44,7 @@
       {% for person in people %}
       <tr>
         <td>{{ person.name }}</td>
+        <td>{{ person.abbreviation or '—' }}</td>
         <td>{{ person.email or '—' }}</td>
         <td>{{ person.family.name if person.family else '—' }}</td>
         <td>{{ person.default_location_label }}</td>

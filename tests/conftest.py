@@ -57,7 +57,8 @@ def make_person(app):
     _counter = [0]
 
     def _make(name=None, email=None, family=None, color="#3388ff",
-              location_label="Home", lat=39.8283, lng=-98.5795):
+              location_label="Home", lat=39.8283, lng=-98.5795,
+              abbreviation=None):
         _counter[0] += 1
         if name is None:
             name = f"Person {_counter[0]}"
@@ -68,6 +69,7 @@ def make_person(app):
             default_location_label=location_label,
             default_location_lat=lat,
             default_location_lng=lng,
+            abbreviation=abbreviation,
         )
         if family:
             p.family_id = family.id

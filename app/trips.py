@@ -78,12 +78,53 @@ def _current_locations():
             trip_destination = active_trip.destinations_summary if active_trip.is_multi_stop else active_trip.destination
             trip_dates = format_date_range(active_trip.start_date, active_trip.end_date)
 
+            # Travel day detection
+            travel_day = False
+            home_lat = person.default_location_lat
+            home_lng = person.default_location_lng
+            if active_trip.start_date == active_trip.end_date:
+                # Single-day trip: always a travel day
+                travel_day = True
+                loc_lat = (home_lat + loc_lat) / 2
+                loc_lng = (home_lng + loc_lng) / 2
+            elif today == active_trip.start_date:
+                # Outbound travel day
+                travel_day = True
+                first_stop = active_trip.stops[0] if active_trip.stops else None
+                dest_lat = first_stop.latitude if first_stop else active_trip.latitude
+                dest_lng = first_stop.longitude if first_stop else active_trip.longitude
+                loc_lat = (home_lat + dest_lat) / 2
+                loc_lng = (home_lng + dest_lng) / 2
+            elif today == active_trip.end_date:
+                # Return travel day
+                travel_day = True
+                last_stop = active_trip.stops[-1] if active_trip.stops else None
+                dest_lat = last_stop.latitude if last_stop else active_trip.latitude
+                dest_lng = last_stop.longitude if last_stop else active_trip.longitude
+                loc_lat = (dest_lat + home_lat) / 2
+                loc_lng = (dest_lng + home_lng) / 2
+            elif active_trip.is_multi_stop and current_stop:
+                # Check if it's a gap day between stops
+                stop_idx = next(
+                    (i for i, s in enumerate(active_trip.stops) if s.id == current_stop.id), 0
+                )
+                # If today is after the current stop's end and before the next stop's start
+                if (current_stop.end_date < today and
+                        stop_idx + 1 < len(active_trip.stops)):
+                    next_stop = active_trip.stops[stop_idx + 1]
+                    if next_stop.start_date > today:
+                        travel_day = True
+                        loc_lat = (current_stop.latitude + next_stop.latitude) / 2
+                        loc_lng = (current_stop.longitude + next_stop.longitude) / 2
+
             locations.append({
                 "name": person.name,
                 "label": active_trip.display_name,
                 "lat": loc_lat,
                 "lng": loc_lng,
                 "traveling": True,
+                "travel_day": travel_day,
+                "abbreviation": person.abbreviation or person.name[:2],
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,
@@ -100,6 +141,8 @@ def _current_locations():
                 "lat": person.default_location_lat,
                 "lng": person.default_location_lng,
                 "traveling": False,
+                "travel_day": False,
+                "abbreviation": person.abbreviation or person.name[:2],
                 "color": person.color,
                 "family": person.family.name if person.family else None,
                 "family_sort": person.family.sort_order if person.family else 999,

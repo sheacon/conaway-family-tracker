@@ -44,6 +44,9 @@ def new_person():
     email = request.form.get("email", "").strip()
     if email:
         person.email = email
+    abbreviation = request.form.get("abbreviation", "").strip()
+    if abbreviation:
+        person.abbreviation = abbreviation
     fam_id = request.form.get("family_id")
     if fam_id:
         person.family_id = int(fam_id)
@@ -62,6 +65,7 @@ def edit_person(id):
         person.default_location_lat = float(request.form["latitude"])
         person.default_location_lng = float(request.form["longitude"])
         person.email = request.form.get("email", "").strip() or None
+        person.abbreviation = request.form.get("abbreviation", "").strip() or None
         person.color = request.form.get("color", person.color)
         fam_id = request.form.get("family_id")
         person.family_id = int(fam_id) if fam_id else None

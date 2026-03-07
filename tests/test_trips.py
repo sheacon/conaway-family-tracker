@@ -499,3 +499,85 @@ class TestFlightDashboard:
                   start_date=date(2026, 3, 10), end_date=date(2026, 3, 15), people=[p])
         resp = auth_client.get("/")
         assert b"Work Conference" in resp.data
+
+
+class TestTravelDayLocations:
+    @freeze_time("2026-03-01 12:00:00")
+    def test_start_date_is_travel_day(self, app, make_person, make_trip, make_stop):
+        from app.trips import _current_locations
+        p = make_person(name="Traveler", lat=40.0, lng=-74.0)
+        t = make_trip(destination="Miami", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), lat=25.76, lng=-80.19, people=[p])
+        make_stop(t, destination="Miami", lat=25.76, lng=-80.19,
+                  start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Traveler")
+        assert loc["travel_day"] is True
+        # Midpoint between home (40, -74) and destination (25.76, -80.19)
+        assert abs(loc["lat"] - 32.88) < 0.01
+        assert abs(loc["lng"] - (-77.095)) < 0.01
+
+    @freeze_time("2026-03-05 12:00:00")
+    def test_end_date_is_travel_day(self, app, make_person, make_trip, make_stop):
+        from app.trips import _current_locations
+        p = make_person(name="Returner", lat=40.0, lng=-74.0)
+        t = make_trip(destination="Miami", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), lat=25.76, lng=-80.19, people=[p])
+        make_stop(t, destination="Miami", lat=25.76, lng=-80.19,
+                  start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Returner")
+        assert loc["travel_day"] is True
+        # Midpoint between destination (25.76, -80.19) and home (40, -74)
+        assert abs(loc["lat"] - 32.88) < 0.01
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_mid_trip_not_travel_day(self, app, make_person, make_trip, make_stop):
+        from app.trips import _current_locations
+        p = make_person(name="MidTripper")
+        t = make_trip(destination="Miami", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 5), lat=25.76, lng=-80.19, people=[p])
+        make_stop(t, destination="Miami", lat=25.76, lng=-80.19,
+                  start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "MidTripper")
+        assert loc["travel_day"] is False
+        assert loc["lat"] == 25.76
+
+    @freeze_time("2026-03-01 12:00:00")
+    def test_single_day_trip_is_travel_day(self, app, make_person, make_trip, make_stop):
+        from app.trips import _current_locations
+        p = make_person(name="DayTripper", lat=40.0, lng=-74.0)
+        t = make_trip(destination="Philly", start_date=date(2026, 3, 1),
+                      end_date=date(2026, 3, 1), lat=39.95, lng=-75.17, people=[p])
+        make_stop(t, destination="Philly", lat=39.95, lng=-75.17,
+                  start_date=date(2026, 3, 1), end_date=date(2026, 3, 1))
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "DayTripper")
+        assert loc["travel_day"] is True
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_abbreviation_in_location(self, app, make_person, make_trip):
+        from app.trips import _current_locations
+        p = make_person(name="Person C", abbreviation="Sh")
+        make_trip(destination="Berlin", start_date=date(2026, 3, 1),
+                  end_date=date(2026, 3, 5), people=[p])
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Person C")
+        assert loc["abbreviation"] == "Sh"
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_abbreviation_fallback(self, app, make_person):
+        from app.trips import _current_locations
+        make_person(name="Person H")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "Person H")
+        assert loc["abbreviation"] == "Go"
+
+    @freeze_time("2026-03-03 12:00:00")
+    def test_home_not_travel_day(self, app, make_person):
+        from app.trips import _current_locations
+        make_person(name="HomeBody")
+        locs = _current_locations()
+        loc = next(l for l in locs if l["name"] == "HomeBody")
+        assert loc["travel_day"] is False

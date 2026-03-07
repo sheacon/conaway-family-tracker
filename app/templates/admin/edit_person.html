@@ -11,6 +11,9 @@
     {% endfor %}
   </select>
 
+  <label for="abbreviation">Abbreviation</label>
+  <input type="text" id="abbreviation" name="abbreviation" value="{{ person.abbreviation or '' }}" maxlength="10" placeholder="Short label for map pins (e.g. Sh)">
+
   <label for="email">Email</label>
   <input type="email" id="email" name="email" value="{{ person.email or '' }}" placeholder="Optional — for trip notifications">
 
