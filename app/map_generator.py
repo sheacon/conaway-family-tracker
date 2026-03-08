@@ -100,7 +100,7 @@ def generate_map_image(prompt: str, reference_image_path: str) -> bytes | None:
         ref_image = Image.open(reference_image_path)
 
         response = client.models.generate_content(
-            model="gemini-3.1-flash-image-preview",
+            model="gemini-3-pro-image-preview",
             contents=[prompt, ref_image],
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT", "IMAGE"],
