@@ -2,7 +2,7 @@ name: Daily trip notifications
 
 on:
   schedule:
-    - cron: "0 13 * * *" # 8 AM ET (1 PM UTC)
+    - cron: "0 11 * * *" # 6 AM ET (11 AM UTC)
   workflow_dispatch: # allow manual trigger
 
 jobs:
