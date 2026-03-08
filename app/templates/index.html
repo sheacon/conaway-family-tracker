@@ -126,13 +126,11 @@
   Object.values(groups).forEach(group => {
     const n = group.length;
     group.forEach((loc, i) => {
-      // Pixel offset for co-located people
+      // Vertical stack offset for co-located people
       let offsetX = 0, offsetY = 0;
       if (n > 1) {
-        const angle = (2 * Math.PI * i) / n - Math.PI / 2;
-        const radius = 20;
-        offsetX = Math.cos(angle) * radius;
-        offsetY = Math.sin(angle) * radius;
+        const spacing = 32;
+        offsetY = (i - (n - 1) / 2) * spacing;
       }
 
       const travelIndicator = loc.travel_day ? ' ✈' : '';
