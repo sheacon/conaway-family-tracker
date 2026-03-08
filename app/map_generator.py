@@ -49,7 +49,7 @@ def build_map_prompt(locations: list[dict]) -> str:
 
     location_text = " ".join(sentences)
     prompt = (
-        f"Create a basic 4:3 cartoon map for the Conaway Family. "
+        f"Create a basic 16:9 cartoon map for the Conaway Family. "
         f"{location_text} "
         f"Place recognizable cartoon versions of each person at their location "
         f"on the map, matching the labeled reference photo provided."
@@ -100,7 +100,7 @@ def generate_map_image(prompt: str, reference_image_path: str) -> bytes | None:
         ref_image = Image.open(reference_image_path)
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model="gemini-3.1-flash-image-preview",
             contents=[prompt, ref_image],
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT", "IMAGE"],
