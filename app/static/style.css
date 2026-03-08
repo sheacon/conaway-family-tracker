@@ -79,7 +79,7 @@ input[type="color"] {
 }
 
 .upcoming-scroll {
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
   margin-bottom: 1rem;
   border: 1px solid var(--pico-muted-border-color);
