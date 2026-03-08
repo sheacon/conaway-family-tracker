@@ -103,27 +103,6 @@ input[type="color"] {
   margin-bottom: 0;
 }
 
-.abbr-marker {
-  background: none !important;
-  border: none !important;
-}
-
-.abbr-marker span {
-  font-size: 28px;
-  font-weight: 800;
-  white-space: nowrap;
-  text-shadow:
-    -1px -1px 0 #fff, 1px -1px 0 #fff,
-    -1px  1px 0 #fff, 1px  1px 0 #fff,
-    0 0 3px rgba(0,0,0,0.2);
-}
-
-[data-theme="dark"] .abbr-marker span {
-  text-shadow:
-    -1px -1px 0 #1a1a2e, 1px -1px 0 #1a1a2e,
-    -1px  1px 0 #1a1a2e, 1px  1px 0 #1a1a2e,
-    0 0 3px rgba(0,0,0,0.5);
-}
 
 .stop-card {
   border: 1px solid var(--pico-muted-border-color);

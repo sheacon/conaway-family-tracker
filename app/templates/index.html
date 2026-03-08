@@ -43,7 +43,9 @@
 
 <h2>Current Locations</h2>
 
-<div id="map" style="height: 400px; border-radius: var(--pico-border-radius); margin-bottom: 1rem;"></div>
+{% if has_map_image %}
+<img src="{{ url_for('trips.map_image') }}" alt="Conaway Family Map" style="width: 100%; aspect-ratio: 4/3; object-fit: contain; border-radius: var(--pico-border-radius); margin-bottom: 1rem;">
+{% endif %}
 
 <figure>
   <table>
@@ -84,106 +86,4 @@
     {% endfor %}
   </table>
 </figure>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  const locations = {{ locations | tojson }};
-
-  const map = L.map('map', {
-    dragging: false,
-    touchZoom: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    zoomControl: false,
-    tap: false,
-  });
-  const tileUrls = {
-    light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-  };
-  const tileAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-  let tileLayer = L.tileLayer(tileUrls[currentTheme], { attribution: tileAttr }).addTo(map);
-
-  new MutationObserver(function() {
-    const theme = document.documentElement.getAttribute('data-theme');
-    map.removeLayer(tileLayer);
-    tileLayer = L.tileLayer(tileUrls[theme] || tileUrls.light, { attribution: tileAttr }).addTo(map);
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-  // Set map view first so we can compute pixel positions
-  const allBounds = locations.map(loc => [loc.lat, loc.lng]);
-  if (allBounds.length > 1) {
-    map.fitBounds(allBounds, { padding: [40, 40] });
-  } else if (allBounds.length === 1) {
-    map.setView(allBounds[0], 5);
-  } else {
-    map.setView([39.8283, -98.5795], 4);
-  }
-
-  // Cluster locations by pixel proximity
-  const CLUSTER_PX = 50;
-  const clusters = [];
-  locations.forEach(loc => {
-    const pt = map.latLngToContainerPoint([loc.lat, loc.lng]);
-    loc._px = pt;
-    let found = false;
-    for (const cluster of clusters) {
-      const cx = cluster.reduce((s, l) => s + l._px.x, 0) / cluster.length;
-      const cy = cluster.reduce((s, l) => s + l._px.y, 0) / cluster.length;
-      if (Math.hypot(pt.x - cx, pt.y - cy) < CLUSTER_PX) {
-        cluster.push(loc);
-        found = true;
-        break;
-      }
-    }
-    if (!found) clusters.push([loc]);
-  });
-
-  // Place markers with grid offsets
-  clusters.forEach(group => {
-    const n = group.length;
-    // Cluster centroid in pixels
-    const cx = group.reduce((s, l) => s + l._px.x, 0) / n;
-    const cy = group.reduce((s, l) => s + l._px.y, 0) / n;
-
-    const maxRows = 3;
-    const cols = Math.ceil(n / maxRows);
-    const rows = Math.min(n, maxRows);
-    const colSpacing = 40;
-    const rowSpacing = 32;
-
-    group.forEach((loc, i) => {
-      const col = Math.floor(i / maxRows);
-      const row = i % maxRows;
-      // Rows in the last column may be fewer
-      const rowsInCol = Math.min(maxRows, n - col * maxRows);
-
-      const offsetX = (col - (cols - 1) / 2) * colSpacing;
-      const offsetY = (row - (rowsInCol - 1) / 2) * rowSpacing;
-
-      // Offset from this location's pixel pos to where it should render
-      const targetX = cx + offsetX;
-      const targetY = cy + offsetY;
-      const anchorX = -(targetX - loc._px.x);
-      const anchorY = -(targetY - loc._px.y);
-
-      const travelIndicator = loc.travel_day ? ' ✈' : '';
-      const icon = L.divIcon({
-        className: 'abbr-marker',
-        html: `<span style="color: ${loc.color};">${loc.abbreviation}${travelIndicator}</span>`,
-        iconSize: null,
-        iconAnchor: [anchorX, anchorY],
-        popupAnchor: [0, -10],
-      });
-
-      const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
-      const status = loc.travel_day ? ' <em>(in transit)</em>' : (loc.traveling ? ' <em>(traveling)</em>' : '');
-      marker.bindPopup(`<strong>${loc.name}</strong><br>${loc.label}${status}`);
-    });
-  });
-</script>
 {% endblock %}

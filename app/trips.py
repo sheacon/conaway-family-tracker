@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from flask_login import login_required
 
 from app import db
@@ -133,6 +133,7 @@ def _current_locations():
                 "stop_info": stop_info,
                 "trip_destination": trip_destination,
                 "trip_dates": trip_dates,
+                "home_label": person.default_location_label,
             })
         else:
             locations.append({
@@ -148,6 +149,7 @@ def _current_locations():
                 "family_sort": person.family.sort_order if person.family else 999,
                 "next_trip": next_trip_info,
                 "flight": None,
+                "home_label": person.default_location_label,
             })
     return locations
 
@@ -181,12 +183,28 @@ def index():
         group_name = loc["family"] or "Other"
         family_groups.setdefault(group_name, []).append(loc)
 
+    from app.map_generator import _cache_paths
+    image_path, _ = _cache_paths()
+    has_map_image = image_path.exists()
+
     return render_template(
         "index.html",
         locations=locations,
         family_groups=family_groups,
         upcoming=upcoming,
+        has_map_image=has_map_image,
     )
+
+
+@bp.route("/map-image")
+@login_required
+def map_image():
+    from app.map_generator import _cache_paths
+    image_path, _ = _cache_paths()
+    if not image_path.exists():
+        from flask import abort
+        abort(404)
+    return send_file(image_path, mimetype="image/png")
 
 
 @bp.route("/trips")

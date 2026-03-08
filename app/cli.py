@@ -6,6 +6,8 @@ from flask.cli import with_appcontext
 
 from app.models import Trip
 from app.email import notify_trip_starting_soon, notify_trip_started, notify_trip_ended
+from app.trips import _current_locations
+from app.map_generator import get_or_generate_map
 
 
 @click.command("send-notifications")
@@ -28,3 +30,16 @@ def send_notifications():
         notify_trip_ended(trip)
 
     click.echo("Done.")
+
+
+@click.command("generate-map")
+@click.option("--force", is_flag=True, help="Regenerate even if locations haven't changed")
+@with_appcontext
+def generate_map(force: bool) -> None:
+    """Generate the Gemini AI cartoon map image."""
+    locations = _current_locations()
+    result = get_or_generate_map(locations, force=force)
+    if result:
+        click.echo(f"Map image at: {result}")
+    else:
+        click.echo("No map image generated.")

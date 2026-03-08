@@ -26,8 +26,9 @@ def create_app():
     app.register_blueprint(trips_bp)
     app.register_blueprint(admin_bp)
 
-    from .cli import send_notifications
+    from .cli import send_notifications, generate_map
     app.cli.add_command(send_notifications)
+    app.cli.add_command(generate_map)
 
     from .filters import register_filters
     register_filters(app)
