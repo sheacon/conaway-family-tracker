@@ -103,29 +103,26 @@ input[type="color"] {
   margin-bottom: 0;
 }
 
-.svg-marker {
+.abbr-marker {
   background: none !important;
   border: none !important;
 }
 
-.pin-label {
-  font-size: 11px;
-  font-weight: bold;
-  padding: 1px 4px !important;
-  border-radius: 3px !important;
-  border: none !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
-  background: #fff !important;
-  color: #333 !important;
+.abbr-marker span {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  text-shadow:
+    -1px -1px 0 #fff, 1px -1px 0 #fff,
+    -1px  1px 0 #fff, 1px  1px 0 #fff,
+    0 0 3px rgba(0,0,0,0.2);
 }
 
-.pin-label::before {
-  display: none !important;
-}
-
-[data-theme="dark"] .pin-label {
-  background: #2a2a2e !important;
-  color: #e0e0e0 !important;
+[data-theme="dark"] .abbr-marker span {
+  text-shadow:
+    -1px -1px 0 #1a1a2e, 1px -1px 0 #1a1a2e,
+    -1px  1px 0 #1a1a2e, 1px  1px 0 #1a1a2e,
+    0 0 3px rgba(0,0,0,0.5);
 }
 
 .stop-card {
