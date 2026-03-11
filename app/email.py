@@ -137,6 +137,13 @@ def _dashboard_html() -> tuple[str, dict | None]:
 
     html = "<hr>"
 
+    # --- Action Links ---
+    html += "<p>"
+    html += f'<a href="{BASE_URL}/trips/new">Add New Trip</a>'
+    html += f' · <a href="{BASE_URL}/trips">View All Trips</a>'
+    html += f' · <a href="{BASE_URL}/">View Dashboard</a>'
+    html += "</p>"
+
     # --- Planned Trips ---
     today = datetime.now(ZoneInfo("America/New_York")).date()
     upcoming = Trip.query.filter(Trip.end_date >= today).order_by(Trip.start_date).all()
@@ -276,13 +283,6 @@ def _dashboard_html() -> tuple[str, dict | None]:
                 html += f"<tr><td>{name_cell}</td><td>{loc_cell}</td><td>{next_cell}</td></tr>"
             html += "</tbody>"
         html += "</table>"
-
-    # --- Action Links ---
-    html += "<p>"
-    html += f'<a href="{BASE_URL}/trips/new">Add New Trip</a>'
-    html += f' · <a href="{BASE_URL}/trips">View All Trips</a>'
-    html += f' · <a href="{BASE_URL}/">View Dashboard</a>'
-    html += "</p>"
 
     return html, map_attachment
 
