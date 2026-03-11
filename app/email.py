@@ -151,7 +151,7 @@ def _dashboard_html() -> tuple[str, dict | None]:
     if upcoming:
         html += "<h3>Planned Trips</h3>"
         html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%;">'
-        html += "<thead><tr><th>Trip</th><th>Dates</th><th>Who</th><th>Travel</th><th></th></tr></thead><tbody>"
+        html += "<thead><tr><th>Trip</th><th>Dates</th><th>Who</th><th>Transportation</th><th></th></tr></thead><tbody>"
         for trip in upcoming:
             # Trip column
             trip_cell = ""
