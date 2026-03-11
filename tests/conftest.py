@@ -82,7 +82,7 @@ def make_person(app):
 def make_trip(app):
     def _make(destination="Paris", start_date=None, end_date=None,
               lat=48.8566, lng=2.3522, people=None, title=None, notes=None,
-              outbound_flight=None, return_flight=None):
+              outbound_flight=None, return_flight=None, transport_mode="flying"):
         if start_date is None:
             start_date = date(2026, 3, 1)
         if end_date is None:
@@ -95,6 +95,7 @@ def make_trip(app):
             end_date=end_date,
             latitude=lat,
             longitude=lng,
+            transport_mode=transport_mode,
             outbound_flight=outbound_flight,
             return_flight=return_flight,
         )

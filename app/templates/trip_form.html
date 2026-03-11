@@ -31,7 +31,16 @@
     {% endfor %}
   </fieldset>
 
-  <fieldset>
+  <label for="transport_mode">Mode of Transportation</label>
+  <select id="transport_mode" name="transport_mode">
+    {% for mode in transport_modes %}
+    <option value="{{ mode }}" {% if (trip and trip.transport_mode == mode) or (not trip and mode == 'flying') %}selected{% endif %}>
+      {{ mode | capitalize }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <fieldset id="flight-info" {% if trip and trip.transport_mode != 'flying' %}style="display: none;"{% endif %}>
     <legend>Flight Info <small>(optional)</small></legend>
     <div class="grid">
       <div>
@@ -209,6 +218,13 @@
   }
 
   document.getElementById('add-stop-btn').addEventListener('click', () => addStop(null));
+
+  // Toggle flight info based on transport mode
+  const transportSelect = document.getElementById('transport_mode');
+  const flightInfo = document.getElementById('flight-info');
+  transportSelect.addEventListener('change', () => {
+    flightInfo.style.display = transportSelect.value === 'flying' ? '' : 'none';
+  });
 
 </script>
 {% endblock %}

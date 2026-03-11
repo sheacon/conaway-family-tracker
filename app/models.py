@@ -38,8 +38,11 @@ class Trip(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    transport_mode = db.Column(db.String(20), nullable=False, default="flying")
     outbound_flight = db.Column(db.String(100), nullable=True)
     return_flight = db.Column(db.String(100), nullable=True)
+
+    TRANSPORT_MODES = ["flying", "driving", "train", "boat"]
     people = db.relationship("Person", secondary=trip_person, backref="trips")
 
     # IATA (2-letter) → ICAO (3-letter) for US airlines.

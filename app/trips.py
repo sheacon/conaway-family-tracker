@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 
 from app import db
-from app.models import Trip, TripStop, Person, Family
+from app.models import Trip, TripStop, Person
 from app.email import notify_trip_created, notify_trip_updated, notify_trip_deleted
 from app.filters import format_date_range
 
@@ -129,6 +129,7 @@ def _current_locations():
                 "family_sort": person.family.sort_order if person.family else 999,
                 "next_trip": next_trip_info,
                 "flight": flight,
+                "transport_mode": active_trip.transport_mode,
                 "stop_info": stop_info,
                 "trip_destination": trip_destination,
                 "trip_dates": trip_dates,
@@ -240,7 +241,9 @@ def new_trip():
         if not stops:
             flash("Please confirm the location for all stops before submitting.", "error")
             people_by_family = _people_by_family()
-            return render_template("trip_form.html", trip=None, people_by_family=people_by_family, stops_data=[])
+            return render_template("trip_form.html", trip=None, people_by_family=people_by_family,
+                                   stops_data=[], transport_modes=Trip.TRANSPORT_MODES)
+        transport_mode = request.form.get("transport_mode", "flying")
         trip = Trip(
             destination=stops[0].destination,
             title=request.form.get("title") or None,
@@ -249,8 +252,9 @@ def new_trip():
             end_date=stops[-1].end_date,
             latitude=stops[0].latitude,
             longitude=stops[0].longitude,
-            outbound_flight=request.form.get("outbound_flight", "").strip() or None,
-            return_flight=request.form.get("return_flight", "").strip() or None,
+            transport_mode=transport_mode,
+            outbound_flight=request.form.get("outbound_flight", "").strip() or None if transport_mode == "flying" else None,
+            return_flight=request.form.get("return_flight", "").strip() or None if transport_mode == "flying" else None,
         )
         for stop in stops:
             trip.stops.append(stop)
@@ -263,7 +267,8 @@ def new_trip():
         flash("Trip added!", "success")
         return redirect(url_for("trips.trip_list"))
     people_by_family = _people_by_family()
-    return render_template("trip_form.html", trip=None, people_by_family=people_by_family, stops_data=[])
+    return render_template("trip_form.html", trip=None, people_by_family=people_by_family,
+                           stops_data=[], transport_modes=Trip.TRANSPORT_MODES)
 
 
 @bp.route("/trips/<int:id>/edit", methods=["GET", "POST"])
@@ -277,11 +282,14 @@ def edit_trip(id):
             people_by_family = _people_by_family()
             stops_data = [{"destination": s.destination, "latitude": s.latitude, "longitude": s.longitude,
                            "start_date": s.start_date.isoformat(), "end_date": s.end_date.isoformat()} for s in trip.stops]
-            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, stops_data=stops_data)
+            return render_template("trip_form.html", trip=trip, people_by_family=people_by_family,
+                                   stops_data=stops_data, transport_modes=Trip.TRANSPORT_MODES)
+        transport_mode = request.form.get("transport_mode", "flying")
         trip.title = request.form.get("title") or None
         trip.notes = request.form.get("notes") or None
-        trip.outbound_flight = request.form.get("outbound_flight", "").strip() or None
-        trip.return_flight = request.form.get("return_flight", "").strip() or None
+        trip.transport_mode = transport_mode
+        trip.outbound_flight = request.form.get("outbound_flight", "").strip() or None if transport_mode == "flying" else None
+        trip.return_flight = request.form.get("return_flight", "").strip() or None if transport_mode == "flying" else None
         # Delete existing stops and re-create
         TripStop.query.filter_by(trip_id=trip.id).delete()
         for stop in stops:
@@ -298,7 +306,8 @@ def edit_trip(id):
     people_by_family = _people_by_family()
     stops_data = [{"destination": s.destination, "latitude": s.latitude, "longitude": s.longitude,
                    "start_date": s.start_date.isoformat(), "end_date": s.end_date.isoformat()} for s in trip.stops]
-    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family, stops_data=stops_data)
+    return render_template("trip_form.html", trip=trip, people_by_family=people_by_family,
+                           stops_data=stops_data, transport_modes=Trip.TRANSPORT_MODES)
 
 
 @bp.route("/trips/<int:id>/delete", methods=["POST"])

@@ -41,7 +41,7 @@ class TestBuildMapPrompt:
         locations = [
             {"name": "Person B", "label": "Montego Bay, Jamaica", "traveling": True,
              "travel_day": True, "home_label": "Richmond, VA",
-             "flight": {"number": "AA123", "label": "Outbound"}},
+             "transport_mode": "flying"},
         ]
         prompt = build_map_prompt(locations)
         assert "Alex is flying from Richmond, VA to Montego Bay, Jamaica" in prompt
@@ -49,19 +49,38 @@ class TestBuildMapPrompt:
     def test_driving_travel_day(self):
         locations = [
             {"name": "Person C", "label": "Nashville, TN", "traveling": True,
-             "travel_day": True, "home_label": "Richmond, VA", "flight": None},
+             "travel_day": True, "home_label": "Richmond, VA",
+             "transport_mode": "driving"},
         ]
         prompt = build_map_prompt(locations)
         assert "Shea is driving from Richmond, VA to Nashville, TN" in prompt
+
+    def test_train_travel_day(self):
+        locations = [
+            {"name": "Person D", "label": "DC", "traveling": True,
+             "travel_day": True, "home_label": "Richmond, VA",
+             "transport_mode": "train"},
+        ]
+        prompt = build_map_prompt(locations)
+        assert "Mary is taking a train from Richmond, VA to DC" in prompt
+
+    def test_boat_travel_day(self):
+        locations = [
+            {"name": "Person H", "label": "Bermuda", "traveling": True,
+             "travel_day": True, "home_label": "Richmond, VA",
+             "transport_mode": "boat"},
+        ]
+        prompt = build_map_prompt(locations)
+        assert "Gordon is taking a boat from Richmond, VA to Bermuda" in prompt
 
     def test_multiple_people_flying(self):
         locations = [
             {"name": "Person B", "label": "Jamaica", "traveling": True,
              "travel_day": True, "home_label": "Richmond, VA",
-             "flight": {"number": "AA1", "label": "Outbound"}},
+             "transport_mode": "flying"},
             {"name": "Person A", "label": "Jamaica", "traveling": True,
              "travel_day": True, "home_label": "Richmond, VA",
-             "flight": {"number": "AA1", "label": "Outbound"}},
+             "transport_mode": "flying"},
         ]
         prompt = build_map_prompt(locations)
         assert "Alex and Mimsy are flying from Richmond, VA to Jamaica" in prompt

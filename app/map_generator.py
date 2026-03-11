@@ -22,24 +22,20 @@ def build_map_prompt(locations: list[dict]) -> str:
         )
 
         if travel_day and members[0].get("traveling"):
-            # Determine mode: flying or driving
-            flight = members[0].get("flight")
             home_label = members[0].get("home_label", "Home")
-
-            if members[0].get("traveling"):
-                dest = label
-                if flight:
-                    sentences.append(
-                        f"{names} are flying from {home_label} to {dest}."
-                        if len(members) > 1 else
-                        f"{names} is flying from {home_label} to {dest}."
-                    )
-                else:
-                    sentences.append(
-                        f"{names} are driving from {home_label} to {dest}."
-                        if len(members) > 1 else
-                        f"{names} is driving from {home_label} to {dest}."
-                    )
+            mode = members[0].get("transport_mode", "flying")
+            mode_verb = {
+                "flying": "flying",
+                "driving": "driving",
+                "train": "taking a train",
+                "boat": "taking a boat",
+            }.get(mode, "traveling")
+            dest = label
+            sentences.append(
+                f"{names} are {mode_verb} from {home_label} to {dest}."
+                if len(members) > 1 else
+                f"{names} is {mode_verb} from {home_label} to {dest}."
+            )
         else:
             sentences.append(
                 f"{names} are in {label}."
