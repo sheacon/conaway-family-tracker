@@ -26,7 +26,6 @@ class Person(db.Model):
     email = db.Column(db.String(254), nullable=True)
     family_id = db.Column(db.Integer, db.ForeignKey("family.id"), nullable=True)
     color = db.Column(db.String(7), nullable=False, default="#3388ff")
-    abbreviation = db.Column(db.String(10), nullable=True)
 
 
 class Trip(db.Model):

@@ -58,16 +58,6 @@ class TestPerson:
         p = make_person(name="Solo")
         assert p.family is None
 
-    def test_abbreviation_stored(self, app, make_person):
-        p = make_person(name="Person C", abbreviation="Sh")
-        assert p.abbreviation == "Sh"
-
-    def test_abbreviation_nullable(self, app):
-        p = Person(name="NoAbbr")
-        db.session.add(p)
-        db.session.commit()
-        assert p.abbreviation is None
-
 
 class TestTrip:
     def test_create(self, app, make_trip):

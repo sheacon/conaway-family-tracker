@@ -557,24 +557,6 @@ class TestTravelDayLocations:
         assert loc["travel_day"] is True
 
     @freeze_time("2026-03-03 12:00:00")
-    def test_abbreviation_in_location(self, app, make_person, make_trip):
-        from app.trips import _current_locations
-        p = make_person(name="Person C", abbreviation="Sh")
-        make_trip(destination="Berlin", start_date=date(2026, 3, 1),
-                  end_date=date(2026, 3, 5), people=[p])
-        locs = _current_locations()
-        loc = next(l for l in locs if l["name"] == "Person C")
-        assert loc["abbreviation"] == "Sh"
-
-    @freeze_time("2026-03-03 12:00:00")
-    def test_abbreviation_fallback(self, app, make_person):
-        from app.trips import _current_locations
-        make_person(name="Person H")
-        locs = _current_locations()
-        loc = next(l for l in locs if l["name"] == "Person H")
-        assert loc["abbreviation"] == "Go"
-
-    @freeze_time("2026-03-03 12:00:00")
     def test_home_not_travel_day(self, app, make_person):
         from app.trips import _current_locations
         make_person(name="HomeBody")

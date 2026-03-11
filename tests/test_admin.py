@@ -86,38 +86,6 @@ class TestPeopleAdmin:
         assert p.color == "#ff0000"
         assert p.family_id == fam.id
 
-    def test_create_person_with_abbreviation(self, auth_client):
-        resp = auth_client.post(
-            "/admin/people/new",
-            data={
-                "name": "AbbrPerson",
-                "abbreviation": "AP",
-            },
-            follow_redirects=True,
-        )
-        p = Person.query.filter_by(name="AbbrPerson").first()
-        assert p.abbreviation == "AP"
-
-    def test_edit_person_abbreviation(self, auth_client, make_person):
-        p = make_person(name="EditAbbr")
-        auth_client.post(
-            f"/admin/people/{p.id}/edit",
-            data={
-                "location_label": "Home",
-                "latitude": "39.8283",
-                "longitude": "-98.5795",
-                "abbreviation": "EA",
-                "color": "#3388ff",
-            },
-        )
-        db.session.refresh(p)
-        assert p.abbreviation == "EA"
-
-    def test_abbreviation_shown_in_list(self, auth_client, make_person):
-        make_person(name="AbbrShow", abbreviation="AS")
-        resp = auth_client.get("/admin/")
-        assert b"AS" in resp.data
-
     def test_edit_person_404(self, auth_client):
         resp = auth_client.get("/admin/people/9999/edit")
         assert resp.status_code == 404
