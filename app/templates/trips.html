@@ -24,13 +24,6 @@
               {% if fam %}<strong>{{ fam }}:</strong> {% endif %}{{ names | join(', ') }}{% if not loop.last %}<br>{% endif %}
             {% endfor %}
           {% else %}—{% endif %}
-          {% if trip.outbound_flight or trip.return_flight %}
-            <br><small>
-            {% if trip.outbound_flight %}&#9992; {{ trip.outbound_flight | flight_link }}{% endif %}
-            {% if trip.outbound_flight and trip.return_flight %} / {% endif %}
-            {% if trip.return_flight %}&#9992; {{ trip.return_flight | flight_link }}{% endif %}
-            </small>
-          {% endif %}
         </td>
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
@@ -43,6 +36,18 @@
             </small>
           {% endif %}
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
+          <br><small>
+          {% if trip.transport_mode == 'flying' %}
+            {% if trip.outbound_flight or trip.return_flight %}
+              {% if trip.outbound_flight %}✈️ {{ trip.outbound_flight | flight_link }}{% endif %}
+              {% if trip.outbound_flight and trip.return_flight %} / {% endif %}
+              {% if trip.return_flight %}✈️ {{ trip.return_flight | flight_link }}{% endif %}
+            {% else %}✈️{% endif %}
+          {% elif trip.transport_mode == 'driving' %}🚗
+          {% elif trip.transport_mode == 'train' %}🚂
+          {% elif trip.transport_mode == 'boat' %}🛳️
+          {% endif %}
+          </small>
         </td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>

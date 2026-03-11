@@ -170,6 +170,30 @@ def _dashboard_html() -> tuple[str, dict | None]:
             if trip.notes:
                 trip_cell += f"<br><small><em>{trip.notes}</em></small>"
 
+            # Transport mode icon + flight links
+            mode = trip.transport_mode or "flying"
+            mode_icons = {"flying": "✈️", "driving": "🚗", "train": "🚂", "boat": "🛳️"}
+            icon = mode_icons.get(mode, "✈️")
+            if mode == "flying" and (trip.outbound_flight or trip.return_flight):
+                flight_parts = []
+                if trip.outbound_flight:
+                    links = ", ".join(
+                        f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
+                        for n in trip.outbound_flight.split(",")
+                        if n.strip()
+                    )
+                    flight_parts.append(f"✈️ {links}")
+                if trip.return_flight:
+                    links = ", ".join(
+                        f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
+                        for n in trip.return_flight.split(",")
+                        if n.strip()
+                    )
+                    flight_parts.append(f"✈️ {links}")
+                trip_cell += f"<br><small>{' / '.join(flight_parts)}</small>"
+            else:
+                trip_cell += f"<br><small>{icon}</small>"
+
             # Who column
             who_cell = ""
             people_sorted = sorted(
@@ -190,23 +214,6 @@ def _dashboard_html() -> tuple[str, dict | None]:
                 who_cell = "<br>".join(parts)
             else:
                 who_cell = "—"
-            if trip.outbound_flight or trip.return_flight:
-                flight_parts = []
-                if trip.outbound_flight:
-                    links = ", ".join(
-                        f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
-                        for n in trip.outbound_flight.split(",")
-                        if n.strip()
-                    )
-                    flight_parts.append(f"&#9992; {links}")
-                if trip.return_flight:
-                    links = ", ".join(
-                        f'<a href="{Trip.flight_url(n.strip())}">{n.strip()}</a>'
-                        for n in trip.return_flight.split(",")
-                        if n.strip()
-                    )
-                    flight_parts.append(f"&#9992; {links}")
-                who_cell += f"<br><small>{' / '.join(flight_parts)}</small>"
 
             # Edit link
             edit_cell = f'<a href="{BASE_URL}/trips/{trip.id}/edit">Edit</a>'
@@ -263,7 +270,7 @@ def _dashboard_html() -> tuple[str, dict | None]:
                         if n.strip()
                     )
                     loc_cell += (
-                        f"<br><small>&#9992; {flight_links} ({flight['label']})</small>"
+                        f"<br><small>✈️ {flight_links} ({flight['label']})</small>"
                     )
 
                 # Next Trip
