@@ -6,7 +6,7 @@
 <figure>
   <table>
     <thead>
-      <tr><th>Trip</th><th>Who</th></tr>
+      <tr><th>Trip</th><th>Dates</th><th>Who</th><th>Travel</th></tr>
     </thead>
     <tbody>
       {% for trip in upcoming %}
@@ -14,10 +14,16 @@
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
           {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
-          {% if trip.is_active %} <mark>in progress</mark>{% endif %}
-          <br><small>{{ trip | date_range }}</small>
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
-          <br><small>
+        </td>
+        <td>
+          {{ trip | date_range }}
+          {% if trip.is_active %} <mark>in progress</mark>{% endif %}
+        </td>
+        <td>
+          {{ trip.people | map(attribute='name') | join(', ') or '—' }}
+        </td>
+        <td>
           {% if trip.transport_mode == 'flying' %}
             {% if trip.outbound_flight or trip.return_flight %}
               {% if trip.outbound_flight %}✈️ {{ trip.outbound_flight | flight_link }}{% endif %}
@@ -28,10 +34,6 @@
           {% elif trip.transport_mode == 'train' %}🚂
           {% elif trip.transport_mode == 'boat' %}🛳️
           {% endif %}
-          </small>
-        </td>
-        <td>
-          {{ trip.people | map(attribute='name') | join(', ') or '—' }}
         </td>
       </tr>
       {% endfor %}

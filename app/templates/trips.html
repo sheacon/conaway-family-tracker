@@ -7,19 +7,16 @@
   <table>
     <thead>
       <tr>
+        <th>Trip</th>
         <th>Dates</th>
         <th>Who</th>
-        <th>Trip</th>
-        <th>Actions</th>
+        <th>Travel</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
       {% for trip in trips %}
       <tr>
-        <td>{{ trip | date_range }}</td>
-        <td>
-          {{ trip.people | map(attribute='name') | join(', ') or '—' }}
-        </td>
         <td>
           {% if trip.title %}{{ trip.title }}<br><small>{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}</small>
           {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
@@ -31,7 +28,12 @@
             </small>
           {% endif %}
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
-          <br><small>
+        </td>
+        <td>{{ trip | date_range }}</td>
+        <td>
+          {{ trip.people | map(attribute='name') | join(', ') or '—' }}
+        </td>
+        <td>
           {% if trip.transport_mode == 'flying' %}
             {% if trip.outbound_flight or trip.return_flight %}
               {% if trip.outbound_flight %}✈️ {{ trip.outbound_flight | flight_link }}{% endif %}
@@ -42,7 +44,6 @@
           {% elif trip.transport_mode == 'train' %}🚂
           {% elif trip.transport_mode == 'boat' %}🛳️
           {% endif %}
-          </small>
         </td>
         <td>
           <a href="{{ url_for('trips.edit_trip', id=trip.id) }}" role="button" class="outline secondary">Edit</a>

@@ -151,7 +151,7 @@ def _dashboard_html() -> tuple[str, dict | None]:
     if upcoming:
         html += "<h3>Planned Trips</h3>"
         html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%;">'
-        html += "<thead><tr><th>Trip</th><th>Who</th><th></th></tr></thead><tbody>"
+        html += "<thead><tr><th>Trip</th><th>Dates</th><th>Who</th><th>Travel</th><th></th></tr></thead><tbody>"
         for trip in upcoming:
             # Trip column
             trip_cell = ""
@@ -164,13 +164,15 @@ def _dashboard_html() -> tuple[str, dict | None]:
                     if trip.is_multi_stop
                     else trip.destination
                 )
-            if trip.is_active:
-                trip_cell += " <em>(in progress)</em>"
-            trip_cell += f"<br><small>{format_date_range(trip.start_date, trip.end_date)}</small>"
             if trip.notes:
                 trip_cell += f"<br><small><em>{trip.notes}</em></small>"
 
-            # Transport mode icon + flight links
+            # Dates column
+            dates_cell = format_date_range(trip.start_date, trip.end_date)
+            if trip.is_active:
+                dates_cell += " <em>(in progress)</em>"
+
+            # Travel column
             mode = trip.transport_mode or "flying"
             mode_icons = {"flying": "✈️", "driving": "🚗", "train": "🚂", "boat": "🛳️"}
             icon = mode_icons.get(mode, "✈️")
@@ -190,9 +192,9 @@ def _dashboard_html() -> tuple[str, dict | None]:
                         if n.strip()
                     )
                     flight_parts.append(f"✈️ {links}")
-                trip_cell += f"<br><small>{' / '.join(flight_parts)}</small>"
+                travel_cell = " / ".join(flight_parts)
             else:
-                trip_cell += f"<br><small>{icon}</small>"
+                travel_cell = icon
 
             # Who column
             people_sorted = sorted(
@@ -205,7 +207,7 @@ def _dashboard_html() -> tuple[str, dict | None]:
             edit_cell = f'<a href="{BASE_URL}/trips/{trip.id}/edit">Edit</a>'
 
             html += (
-                f"<tr><td>{trip_cell}</td><td>{who_cell}</td><td>{edit_cell}</td></tr>"
+                f"<tr><td>{trip_cell}</td><td>{dates_cell}</td><td>{who_cell}</td><td>{travel_cell}</td><td>{edit_cell}</td></tr>"
             )
         html += "</tbody></table>"
 
