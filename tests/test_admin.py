@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from app import db
 from app.models import Config, Person, Family
 
@@ -9,11 +11,15 @@ class TestPeopleAdmin:
 
     def test_create_person(self, auth_client, make_family):
         fam = make_family(name="Clan")
-        resp = auth_client.post("/admin/people/new", data={
-            "name": "NewPerson",
-            "email": "new@example.com",
-            "family_id": str(fam.id),
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/people/new",
+            data={
+                "name": "NewPerson",
+                "email": "new@example.com",
+                "family_id": str(fam.id),
+            },
+            follow_redirects=True,
+        )
         assert b"Added NewPerson" in resp.data
         p = Person.query.filter_by(name="NewPerson").first()
         assert p is not None
@@ -21,22 +27,33 @@ class TestPeopleAdmin:
         assert p.family_id == fam.id
 
     def test_create_person_empty_name(self, auth_client):
-        resp = auth_client.post("/admin/people/new", data={
-            "name": "",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/people/new",
+            data={
+                "name": "",
+            },
+            follow_redirects=True,
+        )
         assert b"Name is required" in resp.data
 
     def test_create_person_duplicate_name(self, auth_client, make_person):
         make_person(name="Existing")
-        resp = auth_client.post("/admin/people/new", data={
-            "name": "Existing",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/people/new",
+            data={
+                "name": "Existing",
+            },
+            follow_redirects=True,
+        )
         assert b"already exists" in resp.data
 
     def test_create_person_redirects_to_edit(self, auth_client):
-        resp = auth_client.post("/admin/people/new", data={
-            "name": "RedirectMe",
-        })
+        resp = auth_client.post(
+            "/admin/people/new",
+            data={
+                "name": "RedirectMe",
+            },
+        )
         assert resp.status_code == 302
         p = Person.query.filter_by(name="RedirectMe").first()
         assert f"/admin/people/{p.id}/edit" in resp.headers["Location"]
@@ -50,14 +67,18 @@ class TestPeopleAdmin:
     def test_edit_person_updates(self, auth_client, make_person, make_family):
         fam = make_family(name="NewFam")
         p = make_person(name="ToEdit")
-        resp = auth_client.post(f"/admin/people/{p.id}/edit", data={
-            "location_label": "Office",
-            "latitude": "40.7128",
-            "longitude": "-74.006",
-            "email": "edited@example.com",
-            "color": "#ff0000",
-            "family_id": str(fam.id),
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            f"/admin/people/{p.id}/edit",
+            data={
+                "location_label": "Office",
+                "latitude": "40.7128",
+                "longitude": "-74.006",
+                "email": "edited@example.com",
+                "color": "#ff0000",
+                "family_id": str(fam.id),
+            },
+            follow_redirects=True,
+        )
         assert b"Updated ToEdit" in resp.data
         db.session.refresh(p)
         assert p.default_location_label == "Office"
@@ -66,22 +87,29 @@ class TestPeopleAdmin:
         assert p.family_id == fam.id
 
     def test_create_person_with_abbreviation(self, auth_client):
-        resp = auth_client.post("/admin/people/new", data={
-            "name": "AbbrPerson",
-            "abbreviation": "AP",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/people/new",
+            data={
+                "name": "AbbrPerson",
+                "abbreviation": "AP",
+            },
+            follow_redirects=True,
+        )
         p = Person.query.filter_by(name="AbbrPerson").first()
         assert p.abbreviation == "AP"
 
     def test_edit_person_abbreviation(self, auth_client, make_person):
         p = make_person(name="EditAbbr")
-        auth_client.post(f"/admin/people/{p.id}/edit", data={
-            "location_label": "Home",
-            "latitude": "39.8283",
-            "longitude": "-98.5795",
-            "abbreviation": "EA",
-            "color": "#3388ff",
-        })
+        auth_client.post(
+            f"/admin/people/{p.id}/edit",
+            data={
+                "location_label": "Home",
+                "latitude": "39.8283",
+                "longitude": "-98.5795",
+                "abbreviation": "EA",
+                "color": "#3388ff",
+            },
+        )
         db.session.refresh(p)
         assert p.abbreviation == "EA"
 
@@ -101,9 +129,13 @@ class TestFamilyAdmin:
         assert resp.status_code == 200
 
     def test_create_family(self, auth_client):
-        resp = auth_client.post("/admin/families/new", data={
-            "name": "NewFamily",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/families/new",
+            data={
+                "name": "NewFamily",
+            },
+            follow_redirects=True,
+        )
         assert b"Created family" in resp.data
         assert Family.query.filter_by(name="NewFamily").first() is not None
 
@@ -114,32 +146,48 @@ class TestFamilyAdmin:
         assert second.sort_order == 6
 
     def test_create_family_empty_name(self, auth_client):
-        resp = auth_client.post("/admin/families/new", data={
-            "name": "",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/families/new",
+            data={
+                "name": "",
+            },
+            follow_redirects=True,
+        )
         assert b"Family name is required" in resp.data
 
     def test_create_family_duplicate_name(self, auth_client, make_family):
         make_family(name="Duped")
-        resp = auth_client.post("/admin/families/new", data={
-            "name": "Duped",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            "/admin/families/new",
+            data={
+                "name": "Duped",
+            },
+            follow_redirects=True,
+        )
         assert b"already exists" in resp.data
 
     def test_edit_family_renames(self, auth_client, make_family):
         fam = make_family(name="OldName")
-        resp = auth_client.post(f"/admin/families/{fam.id}/edit", data={
-            "name": "Renamed",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            f"/admin/families/{fam.id}/edit",
+            data={
+                "name": "Renamed",
+            },
+            follow_redirects=True,
+        )
         assert b"Renamed family" in resp.data
         db.session.refresh(fam)
         assert fam.name == "Renamed"
 
     def test_edit_family_empty_name(self, auth_client, make_family):
         fam = make_family(name="KeepMe")
-        resp = auth_client.post(f"/admin/families/{fam.id}/edit", data={
-            "name": "",
-        }, follow_redirects=True)
+        resp = auth_client.post(
+            f"/admin/families/{fam.id}/edit",
+            data={
+                "name": "",
+            },
+            follow_redirects=True,
+        )
         assert b"Family name is required" in resp.data
 
     def test_edit_family_404(self, auth_client):
@@ -156,13 +204,66 @@ class TestFamilyAdmin:
 
     def test_delete_family_flash(self, auth_client, make_family):
         fam = make_family(name="ByeBye")
-        resp = auth_client.post(f"/admin/families/{fam.id}/delete",
-                                follow_redirects=True)
+        resp = auth_client.post(
+            f"/admin/families/{fam.id}/delete", follow_redirects=True
+        )
         assert b"Deleted family" in resp.data
 
     def test_delete_family_404(self, auth_client):
         resp = auth_client.post("/admin/families/9999/delete")
         assert resp.status_code == 404
+
+
+class TestSendTestEmail:
+    @patch("app.admin.send_test_notification", return_value=True)
+    def test_sends_and_flashes_success(self, mock_send, auth_client, make_person):
+        make_person(name="Tester", email="tester@example.com")
+        resp = auth_client.post(
+            "/admin/test-email",
+            data={
+                "email": "tester@example.com",
+            },
+            follow_redirects=True,
+        )
+        mock_send.assert_called_once_with("tester@example.com")
+        assert b"Test email sent" in resp.data
+
+    @patch("app.admin.send_test_notification", return_value=False)
+    def test_flashes_error_on_failure(self, mock_send, auth_client):
+        resp = auth_client.post(
+            "/admin/test-email",
+            data={
+                "email": "fail@example.com",
+            },
+            follow_redirects=True,
+        )
+        assert b"Failed to send" in resp.data
+
+    def test_empty_email_flashes_error(self, auth_client):
+        resp = auth_client.post(
+            "/admin/test-email",
+            data={
+                "email": "",
+            },
+            follow_redirects=True,
+        )
+        assert b"Please select a recipient" in resp.data
+
+    def test_requires_login(self, client):
+        resp = client.post("/admin/test-email", data={"email": "x@example.com"})
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+
+    def test_form_shown_when_emails_exist(self, auth_client, make_person):
+        make_person(name="HasEmail", email="has@example.com")
+        resp = auth_client.get("/admin/")
+        assert b"Send Test Email" in resp.data
+        assert b"has@example.com" in resp.data
+
+    def test_form_hidden_when_no_emails(self, auth_client, make_person):
+        make_person(name="NoEmail", email=None)
+        resp = auth_client.get("/admin/")
+        assert b"Send Test Email" not in resp.data
 
 
 class TestNotificationsToggle:

@@ -25,15 +25,19 @@ def send_notifications():
         click.echo(f"Starting today: {trip.display_name}")
         notify_trip_started(trip)
 
-    for trip in Trip.query.filter(Trip.end_date == today, Trip.start_date != today).all():
-        click.echo(f"Ended today: {trip.display_name}")
+    for trip in Trip.query.filter(
+        Trip.end_date == today, Trip.start_date != today
+    ).all():
+        click.echo(f"Ending today: {trip.display_name}")
         notify_trip_ended(trip)
 
     click.echo("Done.")
 
 
 @click.command("generate-map")
-@click.option("--force", is_flag=True, help="Regenerate even if locations haven't changed")
+@click.option(
+    "--force", is_flag=True, help="Regenerate even if locations haven't changed"
+)
 @with_appcontext
 def generate_map(force: bool) -> None:
     """Generate the Gemini AI cartoon map image."""

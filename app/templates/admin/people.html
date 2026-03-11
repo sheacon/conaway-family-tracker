@@ -13,6 +13,21 @@
   {% endif %}
 </form>
 
+{% set email_people = people | selectattr('email') | list %}
+{% if email_people %}
+<form method="post" action="{{ url_for('admin.send_test_email') }}" style="margin-bottom: 1rem;">
+  <fieldset role="group">
+    <select name="email" required>
+      <option value="">Select recipient…</option>
+      {% for person in email_people %}
+      <option value="{{ person.email }}">{{ person.name }} ({{ person.email }})</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="outline">Send Test Email</button>
+  </fieldset>
+</form>
+{% endif %}
+
 <form method="post" action="{{ url_for('admin.new_person') }}">
   <fieldset role="group">
     <input type="text" name="name" placeholder="New person's name" required>

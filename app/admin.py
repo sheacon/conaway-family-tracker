@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
+from app.email import send_test_notification
 from app.models import Config, Person, Family
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -14,8 +15,26 @@ def people_list():
     families = Family.query.order_by(Family.sort_order).all()
     row = db.session.get(Config, "notifications_paused")
     paused = row is not None and row.value == "1"
-    return render_template("admin/people.html", people=people, families=families,
-                           notifications_paused=paused)
+    return render_template(
+        "admin/people.html",
+        people=people,
+        families=families,
+        notifications_paused=paused,
+    )
+
+
+@bp.route("/test-email", methods=["POST"])
+@login_required
+def send_test_email():
+    email = request.form.get("email", "").strip()
+    if not email:
+        flash("Please select a recipient.", "error")
+        return redirect(url_for("admin.people_list"))
+    if send_test_notification(email):
+        flash(f"Test email sent to {email}.", "success")
+    else:
+        flash("Failed to send test email.", "error")
+    return redirect(url_for("admin.people_list"))
 
 
 @bp.route("/notifications/toggle", methods=["POST"])
@@ -77,6 +96,7 @@ def edit_person(id):
 
 
 # --- Family CRUD ---
+
 
 @bp.route("/families")
 @login_required
