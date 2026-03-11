@@ -139,8 +139,10 @@ def get_or_generate_map(locations: list[dict], force: bool = False) -> Path | No
             logger.info("Map cache is current, skipping regeneration")
             return image_path
 
-    # Generate new image
-    reference_path = Path(current_app.root_path) / "static" / "family_reference.png"
+    # Generate new image — reference photo lives on persistent volume in prod
+    reference_path = Path("/data/family_reference.png")
+    if not reference_path.exists():
+        reference_path = Path(current_app.root_path) / "static" / "family_reference.png"
     if not reference_path.exists():
         logger.error("Family reference image not found at %s", reference_path)
         return image_path if image_path.exists() else None
