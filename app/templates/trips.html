@@ -2,6 +2,13 @@
 {% block title %}All Trips{% endblock %}
 {% block content %}
 <h2>All Trips</h2>
+<p>
+  {% if show_past %}
+    <a href="{{ url_for('trips.trip_list') }}">Hide past trips</a>
+  {% else %}
+    <a href="{{ url_for('trips.trip_list', show_past='1') }}">Show past trips</a>
+  {% endif %}
+</p>
 {% if trips %}
 <figure>
   <table>

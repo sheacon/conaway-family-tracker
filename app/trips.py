@@ -209,8 +209,13 @@ def map_image():
 @bp.route("/trips")
 @login_required
 def trip_list():
-    trips = Trip.query.order_by(Trip.start_date).all()
-    return render_template("trips.html", trips=trips)
+    today = datetime.now(ZoneInfo("America/New_York")).date()
+    show_past = request.args.get("show_past", "0") == "1"
+    query = Trip.query
+    if not show_past:
+        query = query.filter(Trip.end_date >= today)
+    trips = query.order_by(Trip.start_date).all()
+    return render_template("trips.html", trips=trips, show_past=show_past)
 
 
 def _parse_stops_from_form():

@@ -212,15 +212,31 @@ class TestTripList:
 
     def test_shows_trips(self, auth_client, make_trip):
         make_trip(destination="Hawaii")
-        resp = auth_client.get("/trips")
+        resp = auth_client.get("/trips?show_past=1")
         assert b"Hawaii" in resp.data
+
+    def test_hides_past_trips_by_default(self, auth_client, make_trip):
+        make_trip(destination="PastTrip", start_date=date(2026, 1, 1),
+                  end_date=date(2026, 1, 5))
+        make_trip(destination="FutureTrip", start_date=date(2026, 12, 1),
+                  end_date=date(2026, 12, 5))
+        resp = auth_client.get("/trips")
+        assert b"FutureTrip" in resp.data
+        assert b"PastTrip" not in resp.data
+
+    def test_show_past_toggle(self, auth_client, make_trip):
+        make_trip(destination="PastTrip", start_date=date(2026, 1, 1),
+                  end_date=date(2026, 1, 5))
+        resp = auth_client.get("/trips?show_past=1")
+        assert b"PastTrip" in resp.data
+        assert b"Hide past trips" in resp.data
 
     def test_ordered_by_start_date(self, auth_client, make_trip):
         make_trip(destination="Later", start_date=date(2026, 6, 1),
                   end_date=date(2026, 6, 5))
         make_trip(destination="Earlier", start_date=date(2026, 3, 1),
                   end_date=date(2026, 3, 5))
-        resp = auth_client.get("/trips")
+        resp = auth_client.get("/trips?show_past=1")
         assert resp.data.index(b"Earlier") < resp.data.index(b"Later")
 
 
@@ -484,12 +500,12 @@ class TestFlightDashboard:
 
     def test_title_shown_in_trip_list(self, auth_client, make_trip):
         make_trip(destination="Rome", title="Anniversary Trip")
-        resp = auth_client.get("/trips")
+        resp = auth_client.get("/trips?show_past=1")
         assert b"Anniversary Trip" in resp.data
 
     def test_notes_shown_in_trip_list(self, auth_client, make_trip):
         make_trip(destination="Tokyo", notes="Hotel: Shinjuku Inn")
-        resp = auth_client.get("/trips")
+        resp = auth_client.get("/trips?show_past=1")
         assert b"Hotel: Shinjuku Inn" in resp.data
 
     @freeze_time("2026-02-28 12:00:00")
