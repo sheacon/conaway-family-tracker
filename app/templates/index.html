@@ -26,10 +26,10 @@
         <td>
           {% if trip.transport_mode == 'flying' %}
             {% if trip.outbound_flight or trip.return_flight %}
-              {% if trip.outbound_flight %}✈️ {{ trip.outbound_flight | flight_link }}{% endif %}
+              {% if trip.outbound_flight %}🛫 {{ trip.outbound_flight | flight_link }}{% endif %}
               {% if trip.outbound_flight and trip.return_flight %} / {% endif %}
-              {% if trip.return_flight %}✈️ {{ trip.return_flight | flight_link }}{% endif %}
-            {% else %}✈️{% endif %}
+              {% if trip.return_flight %}🛬 {{ trip.return_flight | flight_link }}{% endif %}
+            {% else %}🛫{% endif %}
           {% elif trip.transport_mode == 'driving' %}🚗
           {% elif trip.transport_mode == 'train' %}🚂
           {% elif trip.transport_mode == 'boat' %}🛳️
@@ -71,7 +71,7 @@
           {% endif %}
           {% if loc.stop_info %}<br><small>{{ loc.stop_info }}</small>{% endif %}
           {% if loc.flight %}
-            <br><small>✈️ {{ loc.flight.number | flight_link }} ({{ loc.flight.label }})</small>
+            <br><small>{% if loc.flight.label == "Outbound" %}🛫{% else %}🛬{% endif %} {{ loc.flight.number | flight_link }} ({{ loc.flight.label }})</small>
           {% endif %}
         </td>
         <td>
