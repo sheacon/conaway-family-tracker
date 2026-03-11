@@ -50,6 +50,7 @@ pytest
 | `DATABASE_URL` | `sqlite:///app.db` | Database connection string |
 | `RESEND_API_KEY` | *(none)* | Resend email API key |
 | `RESEND_FROM_EMAIL` | *(none)* | Sender address |
+| `GEMINI_API_KEY` | *(none)* | Google Gemini API key for AI cartoon map |
 
 ## Project Structure
 
@@ -94,6 +95,18 @@ fly launch
 fly volumes create data --region ord --size 1
 ```
 
+### Family Reference Photo
+
+The AI cartoon map uses a labeled reference photo of your family so Gemini can draw recognizable cartoon versions. This file is kept off the public repo for privacy and stored on the Fly.io persistent volume.
+
+1. Create a labeled photo of your family (each person's name visible) and save it as `family_reference.png`
+2. Upload it to the persistent volume:
+   ```bash
+   fly ssh sftp shell
+   put family_reference.png /data/family_reference.png
+   ```
+3. For local development, place the file at `app/static/family_reference.png` (this path is gitignored)
+
 ### Set Secrets
 
 ```bash
@@ -101,6 +114,7 @@ fly secrets set SECRET_KEY="<generate-a-strong-random-key>"
 fly secrets set APP_PASSWORD="<your-family-password>"
 fly secrets set RESEND_API_KEY="<your-resend-api-key>"
 fly secrets set RESEND_FROM_EMAIL="Your Name <notifications@yourdomain.com>"
+fly secrets set GEMINI_API_KEY="<your-gemini-api-key>"
 ```
 
 `DATABASE_URL` is already configured in `fly.toml` to point at the persistent volume (`sqlite:////data/app.db`).

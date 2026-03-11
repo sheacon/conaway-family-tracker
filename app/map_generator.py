@@ -52,7 +52,8 @@ def build_map_prompt(locations: list[dict]) -> str:
         f"Create a basic 16:9 cartoon map for the Conaway Family. "
         f"{location_text} "
         f"Place recognizable cartoon versions of each person at their location "
-        f"on the map, matching the labeled reference photo provided."
+        f"on the map, matching the labeled reference photo provided. "
+        f"Do not label individuals with their names."
     )
     return prompt
 
