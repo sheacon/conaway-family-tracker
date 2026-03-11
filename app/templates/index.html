@@ -6,7 +6,7 @@
 <figure>
   <table>
     <thead>
-      <tr><th>Trip</th><th>Dates</th><th>Who</th><th>Transportation</th></tr>
+      <tr><th>Trip</th><th>Dates</th><th>Who</th><th>Mode</th></tr>
     </thead>
     <tbody>
       {% for trip in upcoming %}
@@ -16,7 +16,7 @@
           {% else %}{{ trip.destinations_summary if trip.is_multi_stop else trip.destination }}{% endif %}
           {% if trip.notes %}<br><small><em>{{ trip.notes }}</em></small>{% endif %}
         </td>
-        <td>
+        <td class="dates-col">
           {{ trip | date_range }}
           {% if trip.is_active %} <mark>in progress</mark>{% endif %}
         </td>

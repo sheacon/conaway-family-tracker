@@ -14,9 +14,20 @@ def format_date(d):
 
 
 def format_date_range(start_date, end_date):
-    """Format a date range, omitting year for current-year dates."""
+    """Format a date range, omitting year for current-year dates.
+
+    Same-month ranges use a compact end date (month omitted):
+      Fri, Mar 20 – Sun 22
+    """
     if start_date == end_date:
         return format_date(start_date)
+    if start_date.month == end_date.month and start_date.year == end_date.year:
+        today = datetime.now(ZoneInfo("America/New_York")).date()
+        if end_date.year == today.year:
+            end_str = end_date.strftime("%a %-d")
+        else:
+            end_str = end_date.strftime("%a %-d, %Y")
+        return f"{format_date(start_date)} – {end_str}"
     return f"{format_date(start_date)} – {format_date(end_date)}"
 
 

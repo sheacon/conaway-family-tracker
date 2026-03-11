@@ -117,6 +117,10 @@ input[type="color"] {
   margin: 0;
 }
 
+.dates-col {
+  white-space: nowrap;
+}
+
 .route-arrow {
   text-align: center;
   font-size: 1.5rem;

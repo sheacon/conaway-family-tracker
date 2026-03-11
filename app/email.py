@@ -1,7 +1,7 @@
 import base64
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import resend
@@ -144,14 +144,15 @@ def _dashboard_html() -> tuple[str, dict | None]:
     html += f' · <a href="{BASE_URL}/">View Dashboard</a>'
     html += "</p>"
 
-    # --- Planned Trips ---
+    # --- Upcoming Trips (within 2 months) ---
     today = datetime.now(ZoneInfo("America/New_York")).date()
-    upcoming = Trip.query.filter(Trip.end_date >= today).order_by(Trip.start_date).all()
+    two_months = today + timedelta(days=60)
+    upcoming = Trip.query.filter(Trip.end_date >= today, Trip.start_date <= two_months).order_by(Trip.start_date).all()
 
     if upcoming:
-        html += "<h3>Planned Trips</h3>"
+        html += "<h3>Upcoming Trips</h3>"
         html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%;">'
-        html += "<thead><tr><th>Trip</th><th>Dates</th><th>Who</th><th>Transportation</th><th></th></tr></thead><tbody>"
+        html += "<thead><tr><th>Trip</th><th>Dates</th><th>Who</th><th>Mode</th><th></th></tr></thead><tbody>"
         for trip in upcoming:
             # Trip column
             trip_cell = ""

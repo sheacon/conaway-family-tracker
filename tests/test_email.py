@@ -127,7 +127,7 @@ class TestFormatDates:
         t = make_trip(start_date=date(2027, 3, 1), end_date=date(2027, 3, 5))
         result = _format_dates(t)
         assert "Mon, Mar 1, 2027" in result
-        assert "Fri, Mar 5, 2027" in result
+        assert "Fri 5, 2027" in result
         assert "–" in result
 
     def test_same_date(self, app, make_trip):
@@ -243,16 +243,16 @@ class TestTripHtml:
 
 
 class TestDashboardHtml:
-    def test_contains_planned_trips(self, app, make_person, make_trip):
+    def test_contains_upcoming_trips(self, app, make_person, make_trip):
         p = make_person(name="Dash")
         make_trip(
             destination="Tokyo",
-            start_date=date(2026, 6, 1),
-            end_date=date(2026, 6, 10),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 10),
             people=[p],
         )
         html, _ = _dashboard_html()
-        assert "Planned Trips" in html
+        assert "Upcoming Trips" in html
         assert "Tokyo" in html
 
     def test_contains_current_locations(self, app, make_person):
@@ -290,23 +290,23 @@ class TestDashboardHtml:
         assert attachment is not None
         assert 'src="cid:family-map"' in html
 
-    def test_edit_links_in_planned_trips(self, app, make_person, make_trip):
+    def test_edit_links_in_upcoming_trips(self, app, make_person, make_trip):
         p = make_person(name="Editor")
         t = make_trip(
             destination="London",
-            start_date=date(2026, 6, 1),
-            end_date=date(2026, 6, 5),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 5),
             people=[p],
         )
         html, _ = _dashboard_html()
         assert f"/trips/{t.id}/edit" in html
 
-    def test_flights_in_planned_trips(self, app, make_person, make_trip):
+    def test_flights_in_upcoming_trips(self, app, make_person, make_trip):
         p = make_person(name="Flyer")
         make_trip(
             destination="Paris",
-            start_date=date(2026, 6, 1),
-            end_date=date(2026, 6, 5),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 5),
             people=[p],
             outbound_flight="AA100",
             return_flight="AA200",
