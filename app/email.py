@@ -195,25 +195,11 @@ def _dashboard_html() -> tuple[str, dict | None]:
                 trip_cell += f"<br><small>{icon}</small>"
 
             # Who column
-            who_cell = ""
             people_sorted = sorted(
                 trip.people,
                 key=lambda p: (p.family.sort_order if p.family else 999, p.name),
             )
-            groups: OrderedDict[str, list[str]] = OrderedDict()
-            for p in people_sorted:
-                key = p.family.name if p.family else ""
-                groups.setdefault(key, []).append(p.name)
-            if groups:
-                parts = []
-                for fam, names in groups.items():
-                    if fam:
-                        parts.append(f"<strong>{fam}:</strong> {', '.join(names)}")
-                    else:
-                        parts.append(", ".join(names))
-                who_cell = "<br>".join(parts)
-            else:
-                who_cell = "—"
+            who_cell = ", ".join(p.name for p in people_sorted) or "—"
 
             # Edit link
             edit_cell = f'<a href="{BASE_URL}/trips/{trip.id}/edit">Edit</a>'

@@ -31,12 +31,7 @@
           </small>
         </td>
         <td>
-          {% set groups = trip.people | group_by_family %}
-          {% if groups %}
-            {% for fam, names in groups.items() %}
-              {% if fam %}<strong>{{ fam }}:</strong> {% endif %}{{ names | join(', ') }}{% if not loop.last %}<br>{% endif %}
-            {% endfor %}
-          {% else %}—{% endif %}
+          {{ trip.people | map(attribute='name') | join(', ') or '—' }}
         </td>
       </tr>
       {% endfor %}
