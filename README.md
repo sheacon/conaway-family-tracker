@@ -26,19 +26,17 @@ A Flask web app for tracking family travel plans. Members enter upcoming trips, 
 ## Local Development
 
 ```bash
-# Create a virtual environment and install dependencies
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Install dependencies
+uv sync
 
 # Run database migrations
-flask db upgrade
+uv run flask db upgrade
 
 # Start the dev server
-flask --app app:create_app run
+uv run flask --app app:create_app run
 
 # Run tests
-pytest
+uv run pytest
 ```
 
 ### Environment Variables
@@ -79,7 +77,7 @@ tests/
   test_cli.py
 migrations/        # Alembic migrations (Flask-Migrate)
 config.py          # Flask configuration from env vars
-Dockerfile         # Python 3.14-slim container
+Dockerfile         # Python 3.13-slim container with uv
 fly.toml           # Fly.io deployment config
 ```
 

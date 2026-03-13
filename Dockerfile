@@ -1,12 +1,14 @@
-FROM python:3.14-slim
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-dev --frozen
 
 COPY . .
 
 ENV FLASK_APP=app:create_app
 
-CMD flask db upgrade && gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
+CMD uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"

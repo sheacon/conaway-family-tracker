@@ -10,29 +10,29 @@ Family travel tracker — a Flask web app where family members enter travel plan
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+uv sync
 
 # Run dev server
-flask --app app:create_app run
+uv run flask --app app:create_app run
 
 # Run tests
-pytest
+uv run pytest
 
 # Run database migrations
-flask db upgrade
+uv run flask db upgrade
 
 # Generate new migration after model changes
-flask db migrate -m "description"
+uv run flask db migrate -m "description"
 
 # Send daily email notifications (runs locally for testing)
-flask send-notifications
+uv run flask send-notifications
 
 # Generate AI cartoon map (runs daily via GitHub Actions)
-flask generate-map
-flask generate-map --force  # regenerate even if locations unchanged
+uv run flask generate-map
+uv run flask generate-map --force  # regenerate even if locations unchanged
 
 # Production startup (Docker/Fly.io)
-flask db upgrade && gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
+uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
 ```
 
 ## Architecture
