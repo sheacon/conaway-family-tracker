@@ -234,6 +234,62 @@ class TestSendTestEmail:
         assert b"Send Test Email" not in resp.data
 
 
+class TestNotificationPreferences:
+    def test_update_preferences(self, auth_client, make_person):
+        p = make_person(name="NotifPerson", email="np@example.com")
+        resp = auth_client.post(
+            f"/admin/people/{p.id}/notifications",
+            data={"notifications": ["trip_created", "trip_ended"]},
+            follow_redirects=True,
+        )
+        assert b"Updated notification preferences" in resp.data
+        db.session.refresh(p)
+        assert p.get_enabled_notifications() == {"trip_created", "trip_ended"}
+
+    def test_clear_all_preferences(self, auth_client, make_person):
+        p = make_person(name="ClearPerson", email="cp@example.com")
+        resp = auth_client.post(
+            f"/admin/people/{p.id}/notifications",
+            data={},
+            follow_redirects=True,
+        )
+        assert b"Updated notification preferences" in resp.data
+        db.session.refresh(p)
+        assert p.get_enabled_notifications() == set()
+
+    def test_invalid_keys_ignored(self, auth_client, make_person):
+        p = make_person(name="BadKeys", email="bk@example.com")
+        resp = auth_client.post(
+            f"/admin/people/{p.id}/notifications",
+            data={"notifications": ["trip_created", "bogus_key"]},
+            follow_redirects=True,
+        )
+        db.session.refresh(p)
+        assert p.get_enabled_notifications() == {"trip_created"}
+
+    def test_requires_login(self, client, make_person):
+        p = make_person(name="NoAuth", email="na@example.com")
+        resp = client.post(f"/admin/people/{p.id}/notifications", data={})
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+
+    def test_404_for_missing_person(self, auth_client):
+        resp = auth_client.post("/admin/people/9999/notifications", data={})
+        assert resp.status_code == 404
+
+    def test_dropdown_rendered_for_email_people(self, auth_client, make_person):
+        make_person(name="WithEmail", email="we@example.com")
+        resp = auth_client.get("/admin/")
+        assert b"notification-dropdown" in resp.data
+
+    def test_no_dropdown_for_no_email(self, auth_client, make_person):
+        make_person(name="NoEmail2", email=None)
+        resp = auth_client.get("/admin/")
+        # The dash character for people without email
+        html = resp.data.decode()
+        assert "notification-dropdown" not in html or "NoEmail2" in html
+
+
 class TestNotificationsToggle:
     def test_toggle_pauses(self, auth_client, app):
         auth_client.post("/admin/notifications/toggle")
@@ -256,11 +312,11 @@ class TestNotificationsToggle:
             db.session.commit()
         resp = auth_client.get("/admin/")
         assert b"notifications are paused" in resp.data.lower()
-        assert b"Resume Notifications" in resp.data
+        assert b"Resume All Notifications" in resp.data
 
     def test_page_shows_active_state(self, auth_client):
         resp = auth_client.get("/admin/")
-        assert b"Pause Notifications" in resp.data
+        assert b"Pause All Notifications" in resp.data
 
     def test_requires_login(self, client):
         resp = client.post("/admin/notifications/toggle")

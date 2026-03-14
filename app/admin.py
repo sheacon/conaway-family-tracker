@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.email import send_test_notification
+from app.email import NOTIFICATION_TYPES, send_test_notification
 from app.models import Config, Person, Family
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -20,6 +20,7 @@ def people_list():
         people=people,
         families=families,
         notifications_paused=paused,
+        notification_types=NOTIFICATION_TYPES,
     )
 
 
@@ -46,6 +47,18 @@ def toggle_notifications():
     else:
         row.value = "0" if row.value == "1" else "1"
     db.session.commit()
+    return redirect(url_for("admin.people_list"))
+
+
+@bp.route("/people/<int:id>/notifications", methods=["POST"])
+@login_required
+def update_notifications(id):
+    person = db.get_or_404(Person, id)
+    valid_keys = {t["key"] for t in NOTIFICATION_TYPES}
+    selected = [k for k in request.form.getlist("notifications") if k in valid_keys]
+    person.set_enabled_notifications(selected)
+    db.session.commit()
+    flash(f"Updated notification preferences for {person.name}.", "success")
     return redirect(url_for("admin.people_list"))
 
 

@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://conaway-family-tracker.fly.dev"
 
+NOTIFICATION_TYPES = [
+    {"key": "trip_created", "label": "Trip Created"},
+    {"key": "trip_updated", "label": "Trip Updated"},
+    {"key": "trip_deleted", "label": "Trip Cancelled"},
+    {"key": "trip_starting_soon", "label": "Starting Soon (3 days)"},
+    {"key": "trip_started", "label": "Trip Starting Today"},
+    {"key": "trip_ended", "label": "Trip Ending Today"},
+]
+
 
 def notifications_paused() -> bool:
     """Return True if CRUD trip notifications are paused via admin toggle."""
@@ -22,8 +31,14 @@ def notifications_paused() -> bool:
     return row is not None and row.value == "1"
 
 
-def _get_recipients():
-    return [p.email for p in Person.query.filter(Person.email.isnot(None)).all()]
+def _get_recipients(notification_type: str | None = None) -> list[str]:
+    people = Person.query.filter(Person.email.isnot(None)).all()
+    if notification_type is None:
+        return [p.email for p in people]
+    return [
+        p.email for p in people
+        if notification_type in p.get_enabled_notifications()
+    ]
 
 
 def _send_email_to(
@@ -53,9 +68,14 @@ def _send_email_to(
         logger.exception("Failed to send email: %s", subject)
 
 
-def _send_email(subject: str, html_body: str, attachments: list[dict] | None = None):
+def _send_email(
+    subject: str,
+    html_body: str,
+    attachments: list[dict] | None = None,
+    notification_type: str | None = None,
+):
     """Send an email to all recipients with email addresses."""
-    recipients = _get_recipients()
+    recipients = _get_recipients(notification_type=notification_type)
     if not recipients:
         return
     _send_email_to(recipients, subject, html_body, attachments=attachments)
@@ -284,43 +304,43 @@ def _dashboard_html() -> tuple[str, dict | None]:
     return html, map_attachment
 
 
-def _notify(subject: str, heading: str, trip):
+def _notify(subject: str, heading: str, trip, notification_type: str | None = None):
     """Build trip-specific + dashboard HTML and send email."""
     trip_html = _trip_html(heading, trip)
     dashboard_html, map_attachment = _dashboard_html()
     full_html = trip_html + dashboard_html
     attachments = [map_attachment] if map_attachment else None
-    _send_email(subject, full_html, attachments=attachments)
+    _send_email(subject, full_html, attachments=attachments, notification_type=notification_type)
 
 
 def notify_trip_created(trip):
     if notifications_paused():
         return
-    _notify(_subject("New Trip", trip), "New Trip Added", trip)
+    _notify(_subject("New Trip", trip), "New Trip Added", trip, notification_type="trip_created")
 
 
 def notify_trip_updated(trip):
     if notifications_paused():
         return
-    _notify(_subject("Trip Updated", trip), "Trip Updated", trip)
+    _notify(_subject("Trip Updated", trip), "Trip Updated", trip, notification_type="trip_updated")
 
 
 def notify_trip_deleted(trip):
     if notifications_paused():
         return
-    _notify(_subject("Trip Cancelled", trip), "Trip Cancelled", trip)
+    _notify(_subject("Trip Cancelled", trip), "Trip Cancelled", trip, notification_type="trip_deleted")
 
 
 def notify_trip_starting_soon(trip):
-    _notify(_subject("Trip in 3 Days", trip), "Trip Starting Soon", trip)
+    _notify(_subject("Trip in 3 Days", trip), "Trip Starting Soon", trip, notification_type="trip_starting_soon")
 
 
 def notify_trip_started(trip):
-    _notify(_subject("Trip Starting Today", trip), "Trip Starting Today", trip)
+    _notify(_subject("Trip Starting Today", trip), "Trip Starting Today", trip, notification_type="trip_started")
 
 
 def notify_trip_ended(trip):
-    _notify(_subject("Trip Ending", trip), "Trip Ending", trip)
+    _notify(_subject("Trip Ending", trip), "Trip Ending", trip, notification_type="trip_ended")
 
 
 def send_test_notification(recipient_email: str) -> bool:

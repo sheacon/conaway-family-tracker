@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -24,8 +25,20 @@ class Person(db.Model):
     default_location_lat = db.Column(db.Float, nullable=False, default=39.8283)
     default_location_lng = db.Column(db.Float, nullable=False, default=-98.5795)
     email = db.Column(db.String(254), nullable=True)
+    notification_preferences = db.Column(db.Text, nullable=True)
     family_id = db.Column(db.Integer, db.ForeignKey("family.id"), nullable=True)
     color = db.Column(db.String(7), nullable=False, default="#3388ff")
+
+    def get_enabled_notifications(self) -> set[str]:
+        """Return set of enabled notification type keys. None means all enabled."""
+        if self.notification_preferences is None:
+            from app.email import NOTIFICATION_TYPES
+            return {t["key"] for t in NOTIFICATION_TYPES}
+        return set(json.loads(self.notification_preferences))
+
+    def set_enabled_notifications(self, keys: list[str]) -> None:
+        """Store enabled notification keys as sorted JSON list."""
+        self.notification_preferences = json.dumps(sorted(keys))
 
 
 class Trip(db.Model):

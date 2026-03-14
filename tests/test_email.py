@@ -39,6 +39,27 @@ class TestGetRecipients:
         make_person(name="E", email=None)
         assert _get_recipients() == []
 
+    def test_filters_by_notification_type(self, app, make_person):
+        p1 = make_person(name="F1", email="f1@example.com")
+        p2 = make_person(name="F2", email="f2@example.com")
+        p1.set_enabled_notifications(["trip_created", "trip_updated"])
+        p2.set_enabled_notifications(["trip_created"])
+        db.session.commit()
+        assert set(_get_recipients("trip_created")) == {"f1@example.com", "f2@example.com"}
+        assert _get_recipients("trip_updated") == ["f1@example.com"]
+        assert _get_recipients("trip_ended") == []
+
+    def test_no_type_returns_all(self, app, make_person):
+        p = make_person(name="F3", email="f3@example.com")
+        p.set_enabled_notifications([])
+        db.session.commit()
+        assert _get_recipients() == ["f3@example.com"]
+
+    def test_none_preferences_means_all_enabled(self, app, make_person):
+        make_person(name="F4", email="f4@example.com")
+        assert "f4@example.com" in _get_recipients("trip_created")
+        assert "f4@example.com" in _get_recipients("trip_ended")
+
 
 class TestSendEmail:
     @patch("app.email.resend.Emails.send")

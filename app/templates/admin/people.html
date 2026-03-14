@@ -4,15 +4,6 @@
 <h2>Family Members</h2>
 <p><a href="{{ url_for('admin.family_list') }}" role="button" class="outline">Manage Families</a></p>
 
-<form method="post" action="{{ url_for('admin.toggle_notifications') }}" style="margin-bottom: 1rem;">
-  {% if notifications_paused %}
-  <mark>Trip notifications are paused</mark>
-  <button type="submit" class="outline">Resume Notifications</button>
-  {% else %}
-  <button type="submit" class="outline secondary">Pause Notifications</button>
-  {% endif %}
-</form>
-
 <form method="post" action="{{ url_for('admin.new_person') }}">
   <fieldset role="group">
     <input type="text" name="name" placeholder="New person's name" required>
@@ -32,6 +23,7 @@
       <tr>
         <th>Name</th>
         <th>Email</th>
+        <th>Notifications</th>
         <th>Family</th>
         <th>Default Location</th>
         <th>Color</th>
@@ -43,6 +35,30 @@
       <tr>
         <td>{{ person.name }}</td>
         <td>{{ person.email or '—' }}</td>
+        <td>
+          {% if person.email %}
+          {% set enabled = person.get_enabled_notifications() %}
+          <details class="dropdown notification-dropdown">
+            <summary>{{ enabled | length }}/{{ notification_types | length }}</summary>
+            <form method="post" action="{{ url_for('admin.update_notifications', id=person.id) }}">
+              <ul>
+                {% for nt in notification_types %}
+                <li>
+                  <label>
+                    <input type="checkbox" name="notifications" value="{{ nt.key }}"
+                           {% if nt.key in enabled %}checked{% endif %}>
+                    {{ nt.label }}
+                  </label>
+                </li>
+                {% endfor %}
+              </ul>
+              <button type="submit" class="outline" style="width: 100%;">Save</button>
+            </form>
+          </details>
+          {% else %}
+          —
+          {% endif %}
+        </td>
         <td>{{ person.family.name if person.family else '—' }}</td>
         <td>{{ person.default_location_label }}</td>
         <td><span class="color-dot" style="background: {{ person.color }};"></span></td>
@@ -69,4 +85,13 @@
   </fieldset>
 </form>
 {% endif %}
+
+<form method="post" action="{{ url_for('admin.toggle_notifications') }}" style="margin-top: 1rem;">
+  {% if notifications_paused %}
+  <mark>Trip notifications are paused</mark>
+  <button type="submit" class="outline">Resume All Notifications</button>
+  {% else %}
+  <button type="submit" class="outline secondary">Pause All Notifications</button>
+  {% endif %}
+</form>
 {% endblock %}

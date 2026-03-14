@@ -58,6 +58,26 @@ class TestPerson:
         p = make_person(name="Solo")
         assert p.family is None
 
+    def test_notification_preferences_default_all(self, app, make_person):
+        p = make_person(name="AllNotifs")
+        enabled = p.get_enabled_notifications()
+        from app.email import NOTIFICATION_TYPES
+        assert enabled == {t["key"] for t in NOTIFICATION_TYPES}
+
+    def test_notification_preferences_set_and_get(self, app, make_person):
+        p = make_person(name="SomeNotifs")
+        p.set_enabled_notifications(["trip_created", "trip_ended"])
+        db.session.commit()
+        db.session.expire(p)
+        assert p.get_enabled_notifications() == {"trip_created", "trip_ended"}
+
+    def test_notification_preferences_empty(self, app, make_person):
+        p = make_person(name="NoNotifs")
+        p.set_enabled_notifications([])
+        db.session.commit()
+        db.session.expire(p)
+        assert p.get_enabled_notifications() == set()
+
 
 class TestTrip:
     def test_create(self, app, make_trip):

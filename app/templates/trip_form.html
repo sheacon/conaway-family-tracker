@@ -8,9 +8,15 @@
          value="{{ trip.title if trip and trip.title else '' }}"
          placeholder="e.g. Spring Break 2026">
 
-  <h3>Stops</h3>
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+    <h3 style="margin-bottom: 0;" id="stops-heading">Destination</h3>
+    <select id="multi-stop-toggle" style="width: auto; margin-bottom: 0;">
+      <option value="single">One Destination</option>
+      <option value="multi">Multiple Stops</option>
+    </select>
+  </div>
   <div id="stops-container"></div>
-  <button type="button" id="add-stop-btn" class="outline" style="margin-bottom: 1rem;">+ Add Another Stop</button>
+  <button type="button" id="add-stop-btn" class="outline" style="margin-bottom: 1rem; display: none;">+ Add Another Stop</button>
 
   <label for="notes">Notes <small>(optional)</small></label>
   <textarea id="notes" name="notes" rows="1">{{ trip.notes if trip and trip.notes else '' }}</textarea>
@@ -69,7 +75,11 @@
   const stopsData = {{ stops_data | tojson }};
   const stopsContainer = document.getElementById('stops-container');
   const stopCountInput = document.getElementById('stop_count');
+  const multiStopToggle = document.getElementById('multi-stop-toggle');
+  const stopsHeading = document.getElementById('stops-heading');
+  const addStopBtn = document.getElementById('add-stop-btn');
   let stopCards = [];
+  let isMultiStop = false;
 
   const map = L.map('preview-map').setView([39.8283, -98.5795], 3);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -89,8 +99,9 @@
       const lat = parseFloat(card.querySelector(`[name="stop_latitude_${i}"]`).value);
       const lng = parseFloat(card.querySelector(`[name="stop_longitude_${i}"]`).value);
       if (!isNaN(lat) && !isNaN(lng)) {
-        const marker = L.marker([lat, lng]).addTo(map)
-          .bindPopup(`Stop ${i + 1}: ${card.querySelector(`[name="stop_destination_${i}"]`).value}`);
+        const dest = card.querySelector(`[name="stop_destination_${i}"]`).value;
+        const popupText = isMultiStop ? `Stop ${i + 1}: ${dest}` : dest;
+        const marker = L.marker([lat, lng]).addTo(map).bindPopup(popupText);
         stopMarkers.push(marker);
         coords.push([lat, lng]);
       }
@@ -122,13 +133,13 @@
     }
 
     card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="stop-header-row" style="display: ${isMultiStop ? 'flex' : 'none'}; justify-content: space-between; align-items: center;">
         <strong class="stop-header">Stop ${i + 1}</strong>
         <button type="button" class="outline secondary remove-stop" onclick="removeStop(${i})" style="${stopCards.length === 0 && !data ? 'display:none;' : ''}">Remove</button>
       </div>
       <label>Destination</label>
       <input type="text" name="stop_destination_${i}" value="${dest}" required>
-      <button type="button" class="outline geocode-stop-btn" data-index="${i}" style="margin-top: 0.25rem;">Confirm Location</button>
+      <button type="button" class="outline geocode-stop-btn" data-index="${i}" style="margin-top: 0.25rem;">${isMultiStop ? 'Confirm Location' : 'Confirm Destination'}</button>
       <span class="geocode-stop-check" style="color: green; display: ${lat ? 'inline' : 'none'};">&#10003; Location confirmed</span>
       <div class="grid">
         <div>
@@ -143,7 +154,7 @@
       <input type="hidden" name="stop_latitude_${i}" value="${lat}">
       <input type="hidden" name="stop_longitude_${i}" value="${lng}">
     `;
-    if (i > 0) {
+    if (i > 0 && isMultiStop) {
       const arrow = document.createElement('div');
       arrow.className = 'route-arrow';
       arrow.innerHTML = '&#x2193;';
@@ -206,18 +217,63 @@
   function updateRemoveButtons() {
     const removeBtns = stopsContainer.querySelectorAll('.remove-stop');
     removeBtns.forEach(btn => {
-      btn.style.display = stopCards.length > 1 ? '' : 'none';
+      btn.style.display = (isMultiStop && stopCards.length > 1) ? '' : 'none';
     });
   }
 
+  function applyMode() {
+    stopsHeading.textContent = isMultiStop ? 'Stops' : 'Destination';
+    addStopBtn.style.display = isMultiStop ? '' : 'none';
+    // Toggle header rows
+    stopsContainer.querySelectorAll('.stop-header-row').forEach(row => {
+      row.style.display = isMultiStop ? 'flex' : 'none';
+    });
+    // Toggle route arrows
+    stopsContainer.querySelectorAll('.route-arrow').forEach(arrow => {
+      arrow.style.display = isMultiStop ? '' : 'none';
+    });
+    // Update geocode button text
+    stopsContainer.querySelectorAll('.geocode-stop-btn').forEach(btn => {
+      btn.textContent = isMultiStop ? 'Confirm Location' : 'Confirm Destination';
+    });
+    updateRemoveButtons();
+    updateStopMarkers();
+  }
+
   // Initialize stops
+  if (stopsData.length > 1) {
+    isMultiStop = true;
+    multiStopToggle.value = 'multi';
+  }
   if (stopsData.length > 0) {
     stopsData.forEach(d => addStop(d));
   } else {
     addStop(null);
   }
+  applyMode();
 
-  document.getElementById('add-stop-btn').addEventListener('click', () => addStop(null));
+  addStopBtn.addEventListener('click', () => addStop(null));
+
+  multiStopToggle.addEventListener('change', () => {
+    const wantMulti = multiStopToggle.value === 'multi';
+    if (!wantMulti && stopCards.length > 1) {
+      // Switching to single with multiple stops: keep only the first
+      const firstData = {
+        destination: stopCards[0].querySelector('[name="stop_destination_0"]').value,
+        latitude: stopCards[0].querySelector('[name="stop_latitude_0"]').value,
+        longitude: stopCards[0].querySelector('[name="stop_longitude_0"]').value,
+        start_date: stopCards[0].querySelector('[name="stop_start_date_0"]').value,
+        end_date: stopCards[0].querySelector('[name="stop_end_date_0"]').value,
+      };
+      stopsContainer.innerHTML = '';
+      stopCards = [];
+      isMultiStop = false;
+      addStop(firstData);
+    } else {
+      isMultiStop = wantMulti;
+    }
+    applyMode();
+  });
 
   // Toggle flight info based on transport mode
   const transportSelect = document.getElementById('transport_mode');
