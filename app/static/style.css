@@ -333,7 +333,7 @@ input[type="color"] {
 }
 
 .upcoming-scroll table {
-  min-width: 600px;
+  min-width: 500px;
 }
 
 /* === TRIP FORM: STOP CARDS === */
@@ -358,7 +358,7 @@ input[type="color"] {
 }
 
 .dates-col {
-  white-space: nowrap;
+  min-width: 6rem;
 }
 
 .route-arrow {
