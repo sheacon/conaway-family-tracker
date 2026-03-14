@@ -10,6 +10,9 @@
     })();
   </script>
   <title>{% block title %}Conaway Family Tracker{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -22,8 +25,8 @@
       </ul>
       <ul>
         {% if current_user.is_authenticated %}
-          <li><a href="{{ url_for('trips.trip_list') }}">Edit Trips</a></li>
           <li><a href="{{ url_for('trips.new_trip') }}">Add Trip</a></li>
+          <li><a href="{{ url_for('trips.trip_list') }}">Edit Trips</a></li>
           <li><a href="{{ url_for('admin.people_list') }}">Admin</a></li>
           <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
         {% else %}
