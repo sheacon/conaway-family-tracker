@@ -124,7 +124,7 @@ header.container {
 }
 
 nav ul li a {
-  font-size: 0.9rem;
+  font-size: 1.5rem;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -132,7 +132,7 @@ nav ul li a {
 
 nav > ul:first-child li a strong {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--pico-color);
@@ -301,7 +301,7 @@ input[type="color"] {
 /* === DASHBOARD: UPCOMING TRIPS === */
 .upcoming-scroll {
   max-height: 400px;
-  overflow-y: auto;
+  overflow: auto;
   margin-bottom: 1.5rem;
   border: 1px solid var(--pico-muted-border-color);
   border-radius: var(--pico-border-radius);
@@ -469,11 +469,11 @@ main.container > *:nth-child(8) { animation-delay: 0.28s; }
   }
 
   nav ul li a {
-    font-size: 0.8rem;
+    font-size: 1.25rem;
   }
 
   nav > ul:first-child li a strong {
-    font-size: 1rem;
+    font-size: 1.25rem;
   }
 
   header.container {
