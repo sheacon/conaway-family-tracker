@@ -329,6 +329,11 @@ input[type="color"] {
   margin-bottom: 0;
   box-shadow: none;
   border-radius: 0;
+  overflow: visible;
+}
+
+.upcoming-scroll table {
+  min-width: 600px;
 }
 
 /* === TRIP FORM: STOP CARDS === */
