@@ -98,8 +98,11 @@
 
 {% block scripts %}
 <script>
-  document.querySelectorAll('.notification-dropdown form').forEach(form => {
-    form.addEventListener('click', e => e.stopPropagation());
+  // Close notification dropdowns when clicking outside them
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.notification-dropdown[open]').forEach(d => {
+      if (!d.contains(e.target)) d.open = false;
+    });
   });
 </script>
 {% endblock %}

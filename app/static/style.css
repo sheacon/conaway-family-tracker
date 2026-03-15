@@ -405,6 +405,14 @@ input[type="color"] {
   margin: 0.25rem 0;
 }
 
+/* Disable Pico's full-screen overlay on notification dropdowns.
+   The overlay's fixed positioning escapes the figure's overflow:auto
+   stacking context, causing it to sit above the dropdown content
+   and intercept clicks meant for checkboxes. */
+.notification-dropdown[open] > summary::before {
+  display: none;
+}
+
 /* === LOGIN PAGE === */
 .login-page {
   display: flex;
