@@ -188,7 +188,7 @@ nav ul li a:hover {
 figure {
   box-shadow: var(--shadow-sm);
   border-radius: var(--pico-border-radius);
-  overflow: hidden;
+  overflow: auto;
 }
 
 table th {
