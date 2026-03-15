@@ -30,12 +30,6 @@ class TestSeedPeople:
         seed_people()
         assert Person.query.count() == 10
 
-    def test_seeds_with_colors(self, app):
-        seed_people()
-        people = Person.query.order_by(Person.id).all()
-        assert people[0].color == "#e6194b"
-        assert people[1].color == "#3cb44b"
-
     def test_seeds_3_families(self, app):
         seed_people()
         assert Family.query.count() == 3

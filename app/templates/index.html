@@ -59,10 +59,7 @@
       <tr><th colspan="3">{{ family_name }}</th></tr>
       {% for loc in members %}
       <tr>
-        <td>
-          <span class="color-dot" style="background: {{ loc.color }};"></span>
-          {{ loc.name }}
-        </td>
+        <td>{{ loc.name }}</td>
         <td>
           {{ loc.label }}{% if loc.travel_day %} <mark>in transit</mark>{% elif loc.traveling %} <mark>traveling</mark>{% endif %}
           {% if loc.traveling %}

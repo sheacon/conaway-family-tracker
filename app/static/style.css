@@ -282,22 +282,6 @@ button[type="submit"]:not(.outline) {
   margin-bottom: 0;
 }
 
-/* === COLOR DOT === */
-.color-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  vertical-align: middle;
-  margin-right: 0.35rem;
-}
-
-input[type="color"] {
-  height: 2.5rem;
-  padding: 0.25rem;
-  border-radius: var(--pico-border-radius);
-}
-
 /* === DASHBOARD: UPCOMING TRIPS === */
 .upcoming-scroll {
   max-height: 400px;

@@ -27,8 +27,6 @@ class Person(db.Model):
     email = db.Column(db.String(254), nullable=True)
     notification_preferences = db.Column(db.Text, nullable=True)
     family_id = db.Column(db.Integer, db.ForeignKey("family.id"), nullable=True)
-    color = db.Column(db.String(7), nullable=False, default="#3388ff")
-
     def get_enabled_notifications(self) -> set[str]:
         """Return set of enabled notification type keys. None means all enabled."""
         if self.notification_preferences is None:

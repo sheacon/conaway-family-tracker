@@ -171,13 +171,12 @@ class TestCurrentLocations:
         assert loc["trip_destination"] == "Berlin"
 
     @freeze_time("2026-03-03 12:00:00")
-    def test_color_and_family(self, app, make_family, make_person):
+    def test_family(self, app, make_family, make_person):
         from app.trips import _current_locations
         fam = make_family(name="TestFam", sort_order=1)
-        make_person(name="Tina", color="#ff0000", family=fam)
+        make_person(name="Tina", family=fam)
         locs = _current_locations()
         loc = next(l for l in locs if l["name"] == "Tina")
-        assert loc["color"] == "#ff0000"
         assert loc["family"] == "TestFam"
 
 

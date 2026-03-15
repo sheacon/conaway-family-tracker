@@ -83,7 +83,6 @@ def edit_person(id):
         person.default_location_lat = float(request.form["latitude"])
         person.default_location_lng = float(request.form["longitude"])
         person.email = request.form.get("email", "").strip() or None
-        person.color = request.form.get("color", person.color)
         fam_id = request.form.get("family_id")
         person.family_id = int(fam_id) if fam_id else None
         valid_keys = {t["key"] for t in NOTIFICATION_TYPES}

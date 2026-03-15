@@ -9,11 +9,6 @@ FAMILY_MEMBERS = [
     "Person F", "Person G", "Person H", "Person I", "Person J",
 ]
 
-COLOR_PALETTE = [
-    "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
-    "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990",
-]
-
 DEFAULT_FAMILIES = [
     ("Family A", ["Person A", "Person B"]),
     ("Family B", ["Person C", "Person D", "Person E", "Person F", "Person G"]),
@@ -22,7 +17,7 @@ DEFAULT_FAMILIES = [
 
 
 def seed_people() -> None:
-    """Seed default family members, colors, and families on first run."""
+    """Seed default family members and families on first run."""
     inspector = inspect(db.engine)
     if not inspector.has_table("person"):
         return
@@ -32,25 +27,13 @@ def seed_people() -> None:
     except OperationalError:
         return
     if existing is not None:
-        _backfill_colors()
         _backfill_families()
         return
 
-    for i, name in enumerate(FAMILY_MEMBERS):
-        db.session.add(Person(
-            name=name,
-            color=COLOR_PALETTE[i % len(COLOR_PALETTE)],
-        ))
+    for name in FAMILY_MEMBERS:
+        db.session.add(Person(name=name))
     db.session.commit()
     _seed_families()
-
-
-def _backfill_colors() -> None:
-    """Replace default blue with palette colors for existing people."""
-    for i, person in enumerate(Person.query.order_by(Person.id).all()):
-        if person.color == "#3388ff":
-            person.color = COLOR_PALETTE[i % len(COLOR_PALETTE)]
-    db.session.commit()
 
 
 def _backfill_families() -> None:

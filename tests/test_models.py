@@ -41,7 +41,6 @@ class TestPerson:
         db.session.commit()
         assert p.email is None
         assert p.family_id is None
-        assert p.color == "#3388ff"
 
     def test_unique_name(self, app, make_person):
         make_person(name="Dupe")

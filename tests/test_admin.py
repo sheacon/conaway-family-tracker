@@ -74,7 +74,6 @@ class TestPeopleAdmin:
                 "latitude": "40.7128",
                 "longitude": "-74.006",
                 "email": "edited@example.com",
-                "color": "#ff0000",
                 "family_id": str(fam.id),
             },
             follow_redirects=True,
@@ -83,7 +82,6 @@ class TestPeopleAdmin:
         db.session.refresh(p)
         assert p.default_location_label == "Office"
         assert p.email == "edited@example.com"
-        assert p.color == "#ff0000"
         assert p.family_id == fam.id
 
     def test_edit_person_404(self, auth_client):
@@ -241,7 +239,6 @@ class TestNotificationPreferences:
             "latitude": str(person.default_location_lat),
             "longitude": str(person.default_location_lng),
             "email": person.email or "",
-            "color": person.color,
         }
         data.update(overrides)
         return data

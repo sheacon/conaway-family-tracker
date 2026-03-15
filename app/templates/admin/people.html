@@ -26,7 +26,6 @@
         <th>Notifications</th>
         <th>Family</th>
         <th>Default Location</th>
-        <th>Color</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -45,7 +44,6 @@
         </td>
         <td>{{ person.family.name if person.family else '—' }}</td>
         <td>{{ person.default_location_label }}</td>
-        <td><span class="color-dot" style="background: {{ person.color }};"></span></td>
         <td>
           <a href="{{ url_for('admin.edit_person', id=person.id) }}" role="button" class="outline secondary">Edit</a>
         </td>
