@@ -370,48 +370,6 @@ input[type="color"] {
   opacity: 0.5;
 }
 
-/* === ADMIN: NOTIFICATION DROPDOWN === */
-.notification-dropdown {
-  margin-bottom: 0;
-}
-
-.notification-dropdown summary {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-  width: auto;
-  display: inline-block;
-  border-radius: 0.3rem;
-  background: var(--pico-card-sectioning-background-color);
-  cursor: pointer;
-}
-
-.notification-dropdown ul {
-  list-style: none;
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-}
-
-.notification-dropdown ul li {
-  margin-bottom: 0;
-}
-
-.notification-dropdown ul li label {
-  font-size: 0.8rem;
-  margin-bottom: 0;
-  cursor: pointer;
-}
-
-.notification-dropdown form button {
-  margin: 0.25rem 0;
-}
-
-/* Disable Pico's full-screen overlay on notification dropdowns.
-   The overlay's fixed positioning escapes the figure's overflow:auto
-   stacking context, causing it to sit above the dropdown content
-   and intercept clicks meant for checkboxes. */
-.notification-dropdown[open] > summary::before {
-  display: none;
-}
 
 /* === LOGIN PAGE === */
 .login-page {

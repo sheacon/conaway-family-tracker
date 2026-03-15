@@ -50,17 +50,6 @@ def toggle_notifications():
     return redirect(url_for("admin.people_list"))
 
 
-@bp.route("/people/<int:id>/notifications", methods=["POST"])
-@login_required
-def update_notifications(id):
-    person = db.get_or_404(Person, id)
-    valid_keys = {t["key"] for t in NOTIFICATION_TYPES}
-    selected = [k for k in request.form.getlist("notifications") if k in valid_keys]
-    person.set_enabled_notifications(selected)
-    db.session.commit()
-    flash(f"Updated notification preferences for {person.name}.", "success")
-    return redirect(url_for("admin.people_list"))
-
 
 @bp.route("/people/new", methods=["POST"])
 @login_required
@@ -97,11 +86,19 @@ def edit_person(id):
         person.color = request.form.get("color", person.color)
         fam_id = request.form.get("family_id")
         person.family_id = int(fam_id) if fam_id else None
+        valid_keys = {t["key"] for t in NOTIFICATION_TYPES}
+        selected = [k for k in request.form.getlist("notifications") if k in valid_keys]
+        person.set_enabled_notifications(selected)
         db.session.commit()
         flash(f"Updated {person.name}.", "success")
         return redirect(url_for("admin.people_list"))
     families = Family.query.order_by(Family.sort_order).all()
-    return render_template("admin/edit_person.html", person=person, families=families)
+    return render_template(
+        "admin/edit_person.html",
+        person=person,
+        families=families,
+        notification_types=NOTIFICATION_TYPES,
+    )
 
 
 # --- Family CRUD ---

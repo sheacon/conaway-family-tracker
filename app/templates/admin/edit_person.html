@@ -29,6 +29,18 @@
   <input type="hidden" id="longitude" name="longitude"
          value="{{ person.default_location_lng }}">
 
+  <label>Email Notifications</label>
+  {% set enabled = person.get_enabled_notifications() %}
+  <div class="checkbox-group">
+    {% for nt in notification_types %}
+    <label>
+      <input type="checkbox" name="notifications" value="{{ nt.key }}"
+             {% if nt.key in enabled %}checked{% endif %}>
+      {{ nt.label }}
+    </label>
+    {% endfor %}
+  </div>
+
   <button type="submit">Save</button>
 </form>
 {% endblock %}

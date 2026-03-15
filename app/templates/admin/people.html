@@ -38,23 +38,7 @@
         <td>
           {% if person.email %}
           {% set enabled = person.get_enabled_notifications() %}
-          <details class="dropdown notification-dropdown">
-            <summary>{{ enabled | length }}/{{ notification_types | length }}</summary>
-            <form method="post" action="{{ url_for('admin.update_notifications', id=person.id) }}">
-              <ul>
-                {% for nt in notification_types %}
-                <li>
-                  <label>
-                    <input type="checkbox" name="notifications" value="{{ nt.key }}"
-                           {% if nt.key in enabled %}checked{% endif %}>
-                    {{ nt.label }}
-                  </label>
-                </li>
-                {% endfor %}
-              </ul>
-              <button type="submit" class="outline" style="width: 100%;">Save</button>
-            </form>
-          </details>
+          {{ enabled | length }}/{{ notification_types | length }}
           {% else %}
           —
           {% endif %}
@@ -94,15 +78,4 @@
   <button type="submit" class="outline secondary">Pause All Notifications</button>
   {% endif %}
 </form>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // Close notification dropdowns when clicking outside them
-  document.addEventListener('click', e => {
-    document.querySelectorAll('.notification-dropdown[open]').forEach(d => {
-      if (!d.contains(e.target)) d.open = false;
-    });
-  });
-</script>
 {% endblock %}

@@ -235,59 +235,54 @@ class TestSendTestEmail:
 
 
 class TestNotificationPreferences:
+    def _edit_data(self, person, **overrides):
+        data = {
+            "location_label": person.default_location_label,
+            "latitude": str(person.default_location_lat),
+            "longitude": str(person.default_location_lng),
+            "email": person.email or "",
+            "color": person.color,
+        }
+        data.update(overrides)
+        return data
+
     def test_update_preferences(self, auth_client, make_person):
         p = make_person(name="NotifPerson", email="np@example.com")
         resp = auth_client.post(
-            f"/admin/people/{p.id}/notifications",
-            data={"notifications": ["trip_created", "trip_ended"]},
+            f"/admin/people/{p.id}/edit",
+            data={**self._edit_data(p), "notifications": ["trip_created", "trip_ended"]},
             follow_redirects=True,
         )
-        assert b"Updated notification preferences" in resp.data
+        assert b"Updated NotifPerson" in resp.data
         db.session.refresh(p)
         assert p.get_enabled_notifications() == {"trip_created", "trip_ended"}
 
     def test_clear_all_preferences(self, auth_client, make_person):
         p = make_person(name="ClearPerson", email="cp@example.com")
         resp = auth_client.post(
-            f"/admin/people/{p.id}/notifications",
-            data={},
+            f"/admin/people/{p.id}/edit",
+            data=self._edit_data(p),
             follow_redirects=True,
         )
-        assert b"Updated notification preferences" in resp.data
+        assert b"Updated ClearPerson" in resp.data
         db.session.refresh(p)
         assert p.get_enabled_notifications() == set()
 
     def test_invalid_keys_ignored(self, auth_client, make_person):
         p = make_person(name="BadKeys", email="bk@example.com")
         resp = auth_client.post(
-            f"/admin/people/{p.id}/notifications",
-            data={"notifications": ["trip_created", "bogus_key"]},
+            f"/admin/people/{p.id}/edit",
+            data={**self._edit_data(p), "notifications": ["trip_created", "bogus_key"]},
             follow_redirects=True,
         )
         db.session.refresh(p)
         assert p.get_enabled_notifications() == {"trip_created"}
 
-    def test_requires_login(self, client, make_person):
-        p = make_person(name="NoAuth", email="na@example.com")
-        resp = client.post(f"/admin/people/{p.id}/notifications", data={})
-        assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
-
-    def test_404_for_missing_person(self, auth_client):
-        resp = auth_client.post("/admin/people/9999/notifications", data={})
-        assert resp.status_code == 404
-
-    def test_dropdown_rendered_for_email_people(self, auth_client, make_person):
-        make_person(name="WithEmail", email="we@example.com")
-        resp = auth_client.get("/admin/")
-        assert b"notification-dropdown" in resp.data
-
-    def test_no_dropdown_for_no_email(self, auth_client, make_person):
-        make_person(name="NoEmail2", email=None)
-        resp = auth_client.get("/admin/")
-        # The dash character for people without email
-        html = resp.data.decode()
-        assert "notification-dropdown" not in html or "NoEmail2" in html
+    def test_edit_page_shows_checkboxes(self, auth_client, make_person):
+        p = make_person(name="WithEmail", email="we@example.com")
+        resp = auth_client.get(f"/admin/people/{p.id}/edit")
+        assert b"Email Notifications" in resp.data
+        assert b"Trip Created" in resp.data
 
 
 class TestNotificationsToggle:
