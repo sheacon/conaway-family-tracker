@@ -95,3 +95,11 @@
   {% endif %}
 </form>
 {% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.notification-dropdown form').forEach(form => {
+    form.addEventListener('click', e => e.stopPropagation());
+  });
+</script>
+{% endblock %}
