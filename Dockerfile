@@ -11,4 +11,4 @@ COPY . .
 
 ENV FLASK_APP=app:create_app
 
-CMD uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
+CMD uv run --no-dev flask db upgrade && uv run --no-dev gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app()"
