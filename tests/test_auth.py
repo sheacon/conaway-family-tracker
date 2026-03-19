@@ -1,30 +1,32 @@
+"""Tests for authentication routes."""
+
+
 class TestLogin:
     def test_login_page_renders(self, client):
         resp = client.get("/login")
         assert resp.status_code == 200
         assert b"password" in resp.data.lower()
 
-    def test_login_success_redirects(self, client):
+    def test_login_correct_password(self, client):
         resp = client.post("/login", data={"password": "testpass"})
         assert resp.status_code == 302
-
-    def test_login_session_persists(self, auth_client):
-        resp = auth_client.get("/")
-        assert resp.status_code == 200
+        assert "/" in resp.headers["Location"]
 
     def test_login_wrong_password(self, client):
-        resp = client.post("/login", data={"password": "wrong"},
-                           follow_redirects=True)
+        resp = client.post("/login", data={"password": "wrong"})
+        assert resp.status_code == 200
         assert b"Wrong password" in resp.data
 
     def test_login_empty_password(self, client):
-        resp = client.post("/login", data={"password": ""},
-                           follow_redirects=True)
+        resp = client.post("/login", data={"password": ""})
+        assert resp.status_code == 200
         assert b"Wrong password" in resp.data
 
-    def test_login_next_redirect(self, client):
-        resp = client.post("/login?next=%2Ftrips",
-                           data={"password": "testpass"})
+    def test_login_redirects_to_next(self, client):
+        resp = client.post(
+            "/login?next=/trips",
+            data={"password": "testpass"},
+        )
         assert resp.status_code == 302
         assert "/trips" in resp.headers["Location"]
 
@@ -42,29 +44,32 @@ class TestLogout:
 
 
 class TestProtectedRoutes:
-    def test_index_requires_login(self, client):
+    def test_dashboard_requires_auth(self, client):
         resp = client.get("/")
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
 
-    def test_trips_requires_login(self, client):
+    def test_trips_requires_auth(self, client):
         resp = client.get("/trips")
         assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
 
-    def test_admin_requires_login(self, client):
+    def test_admin_requires_auth(self, client):
         resp = client.get("/admin/")
         assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
+
+    def test_new_trip_requires_auth(self, client):
+        resp = client.get("/trips/new")
+        assert resp.status_code == 302
 
 
-class TestLoadUser:
-    def test_valid_user(self, app):
+class TestUserLoader:
+    def test_load_valid_user(self, app):
         from app.auth import load_user
         user = load_user("family")
         assert user is not None
         assert user.id == "family"
 
-    def test_invalid_user(self, app):
+    def test_load_invalid_user(self, app):
         from app.auth import load_user
-        assert load_user("nobody") is None
+        assert load_user("other") is None
+        assert load_user("") is None

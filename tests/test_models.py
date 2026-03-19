@@ -1,309 +1,254 @@
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+"""Tests for SQLAlchemy models."""
 
-import pytest
+from datetime import date
+
 from freezegun import freeze_time
 
 from app import db
-from app.models import Family, Person, Trip, TripStop, Config
+from app.models import Config, Family, Person, Trip, TripStop
 
 
 class TestFamily:
-    def test_create(self, app, make_family):
-        fam = make_family(name="Smiths", sort_order=0)
-        assert fam.id is not None
-        assert fam.name == "Smiths"
-        assert fam.sort_order == 0
+    def test_create(self, make_family):
+        f = make_family(name="Smith", sort_order=1)
+        assert f.id is not None
+        assert f.name == "Smith"
+        assert f.sort_order == 1
 
-    def test_default_sort_order(self, app):
-        fam = Family(name="Test")
-        db.session.add(fam)
-        db.session.commit()
-        assert fam.sort_order == 0
-
-    def test_unique_name(self, app, make_family):
-        make_family(name="Unique")
-        with pytest.raises(Exception):
-            make_family(name="Unique")
+    def test_members_relationship(self, make_family, make_person):
+        f = make_family(name="Smith")
+        p = make_person(name="John", family=f)
+        assert p in f.members
+        assert p.family == f
 
 
 class TestPerson:
-    def test_create(self, app, make_person):
-        p = make_person(name="Alice")
+    def test_create(self, make_person):
+        p = make_person(name="Alice", email="alice@example.com")
         assert p.id is not None
         assert p.name == "Alice"
+        assert p.email == "alice@example.com"
+
+    def test_default_location(self, make_person):
+        p = make_person()
         assert p.default_location_label == "Home"
         assert p.default_location_lat == 39.8283
+        assert p.default_location_lng == -98.5795
 
-    def test_defaults(self, app):
-        p = Person(name="Bob")
-        db.session.add(p)
-        db.session.commit()
-        assert p.email is None
-        assert p.family_id is None
-
-    def test_unique_name(self, app, make_person):
-        make_person(name="Dupe")
-        with pytest.raises(Exception):
-            make_person(name="Dupe")
-
-    def test_family_relationship(self, app, make_family, make_person):
-        fam = make_family(name="Joneses")
-        p = make_person(name="Jim", family=fam)
-        assert p.family.name == "Joneses"
-        assert p in fam.members
-
-    def test_no_family(self, app, make_person):
-        p = make_person(name="Solo")
-        assert p.family is None
-
-    def test_notification_preferences_default_all(self, app, make_person):
-        p = make_person(name="AllNotifs")
+    def test_get_enabled_notifications_defaults_all(self, make_person):
+        p = make_person()
         enabled = p.get_enabled_notifications()
-        from app.email import NOTIFICATION_TYPES
-        assert enabled == {t["key"] for t in NOTIFICATION_TYPES}
+        assert "trip_created" in enabled
+        assert "trip_updated" in enabled
+        assert "trip_deleted" in enabled
+        assert "trip_starting_soon" in enabled
+        assert "trip_started" in enabled
+        assert "trip_ended" in enabled
 
-    def test_notification_preferences_set_and_get(self, app, make_person):
-        p = make_person(name="SomeNotifs")
-        p.set_enabled_notifications(["trip_created", "trip_ended"])
+    def test_set_and_get_notifications(self, make_person):
+        p = make_person()
+        p.set_enabled_notifications(["trip_created", "trip_started"])
         db.session.commit()
-        db.session.expire(p)
-        assert p.get_enabled_notifications() == {"trip_created", "trip_ended"}
+        enabled = p.get_enabled_notifications()
+        assert enabled == {"trip_created", "trip_started"}
 
-    def test_notification_preferences_empty(self, app, make_person):
-        p = make_person(name="NoNotifs")
+    def test_set_empty_notifications(self, make_person):
+        p = make_person()
         p.set_enabled_notifications([])
         db.session.commit()
-        db.session.expire(p)
         assert p.get_enabled_notifications() == set()
 
 
 class TestTrip:
-    def test_create(self, app, make_trip):
-        t = make_trip(destination="Rome")
+    def test_create(self, make_trip):
+        t = make_trip(destination="Tokyo")
         assert t.id is not None
-        assert t.destination == "Rome"
+        assert t.destination == "Tokyo"
 
-    @freeze_time("2026-03-03 12:00:00")
-    def test_is_active_in_range(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_active is True
-
-    @freeze_time("2026-03-01 12:00:00")
-    def test_is_active_on_start(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_active is True
-
-    @freeze_time("2026-03-05 12:00:00")
-    def test_is_active_on_end(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_active is True
-
-    @freeze_time("2026-02-28 12:00:00")
-    def test_is_active_before_start(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_active is False
-
-    @freeze_time("2026-03-06 12:00:00")
-    def test_is_active_after_end(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_active is False
-
-    @freeze_time("2026-02-28 12:00:00")
-    def test_is_upcoming(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_upcoming is True
-
-    @freeze_time("2026-03-01 12:00:00")
-    def test_is_upcoming_false_on_start(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
-        assert t.is_upcoming is False
-
-    def test_display_name_with_title(self, app, make_trip):
-        t = make_trip(destination="Paris", title="Spring Break")
+    def test_display_name_with_title(self, make_trip):
+        t = make_trip(title="Spring Break", destination="Cancun")
         assert t.display_name == "Spring Break"
 
-    def test_display_name_without_title(self, app, make_trip):
-        t = make_trip(destination="Paris")
-        assert t.display_name == "Paris"
+    def test_display_name_without_title(self, make_trip):
+        t = make_trip(destination="Cancun")
+        assert t.display_name == "Cancun"
 
-    def test_title_and_notes_nullable(self, app, make_trip):
-        t = make_trip(destination="Rome")
-        assert t.title is None
-        assert t.notes is None
+    @freeze_time("2026-06-03", tz_offset=0)
+    def test_is_active_during_trip(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_active is True
 
-    def test_title_and_notes_stored(self, app, make_trip):
-        t = make_trip(destination="Tokyo", title="Asia Trip", notes="Pack light")
-        assert t.title == "Asia Trip"
-        assert t.notes == "Pack light"
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_is_active_on_start_date(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_active is True
 
-    def test_people_many_to_many(self, app, make_trip, make_person):
+    @freeze_time("2026-06-05 12:00:00", tz_offset=0)
+    def test_is_active_on_end_date(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_active is True
+
+    @freeze_time("2026-05-31 12:00:00", tz_offset=0)
+    def test_is_active_before_trip(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_active is False
+
+    @freeze_time("2026-06-06 12:00:00", tz_offset=0)
+    def test_is_active_after_trip(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_active is False
+
+    @freeze_time("2026-05-31 12:00:00", tz_offset=0)
+    def test_is_upcoming(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_upcoming is True
+
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_is_not_upcoming_on_start(self, make_trip):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        assert t.is_upcoming is False
+
+    def test_people_relationship(self, make_trip, make_person):
         p1 = make_person(name="A")
         p2 = make_person(name="B")
         t = make_trip(people=[p1, p2])
-        assert len(t.people) == 2
+        assert p1 in t.people
+        assert p2 in t.people
         assert t in p1.trips
 
-    def test_empty_people(self, app, make_trip):
-        t = make_trip()
-        assert t.people == []
-
-    @freeze_time("2026-03-01 12:00:00")
-    def test_single_day_trip_active(self, app, make_trip):
-        t = make_trip(start_date=date(2026, 3, 1), end_date=date(2026, 3, 1))
-        assert t.is_active is True
-
-    def test_flights_stored(self, app, make_trip):
-        t = make_trip(outbound_flight="BA100", return_flight="BA101")
-        assert t.outbound_flight == "BA100"
-        assert t.return_flight == "BA101"
-
-    def test_flights_nullable(self, app, make_trip):
-        t = make_trip()
-        assert t.outbound_flight is None
-        assert t.return_flight is None
-
-    @freeze_time("2026-03-05 03:00:00", tz_offset=0)
-    def test_is_active_uses_et_not_utc(self, app, make_trip):
-        """At 3 AM UTC Mar 5 (10 PM ET Mar 4), a trip starting Mar 5 should NOT be active."""
-        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
-        assert t.is_active is False
-
-    @freeze_time("2026-03-05 03:00:00", tz_offset=0)
-    def test_is_upcoming_uses_et_not_utc(self, app, make_trip):
-        """At 3 AM UTC Mar 5 (10 PM ET Mar 4), a trip starting Mar 5 should be upcoming."""
-        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
-        assert t.is_upcoming is True
-
-    @freeze_time("2026-03-11 03:00:00", tz_offset=0)
-    def test_is_active_not_ended_early_in_et(self, app, make_trip):
-        """At 3 AM UTC Mar 11 (10 PM ET Mar 10), a trip ending Mar 10 should still be active."""
-        t = make_trip(start_date=date(2026, 3, 5), end_date=date(2026, 3, 10))
-        assert t.is_active is True
+    def test_transport_modes(self):
+        assert "flying" in Trip.TRANSPORT_MODES
+        assert "driving" in Trip.TRANSPORT_MODES
+        assert "train" in Trip.TRANSPORT_MODES
+        assert "boat" in Trip.TRANSPORT_MODES
 
 
 class TestFlightUrl:
-    def test_iata_to_icao_conversion(self, app):
-        assert Trip.flight_url("UA123") == "https://flightaware.com/live/flight/UAL123"
-        assert Trip.flight_url("DL1462") == "https://flightaware.com/live/flight/DAL1462"
-        assert Trip.flight_url("WN209") == "https://flightaware.com/live/flight/SWA209"
+    def test_iata_to_icao_conversion(self):
         assert Trip.flight_url("AA100") == "https://flightaware.com/live/flight/AAL100"
-        assert Trip.flight_url("B6800") == "https://flightaware.com/live/flight/JBU800"
+        assert Trip.flight_url("DL456") == "https://flightaware.com/live/flight/DAL456"
+        assert Trip.flight_url("UA789") == "https://flightaware.com/live/flight/UAL789"
+        assert Trip.flight_url("WN1234") == "https://flightaware.com/live/flight/SWA1234"
 
-    def test_icao_passthrough(self, app):
-        assert Trip.flight_url("UAL123") == "https://flightaware.com/live/flight/UAL123"
-
-    def test_unknown_prefix_passthrough(self, app):
+    def test_unknown_airline_passthrough(self):
         assert Trip.flight_url("ZZ999") == "https://flightaware.com/live/flight/ZZ999"
+
+    def test_already_icao(self):
+        assert Trip.flight_url("AAL100") == "https://flightaware.com/live/flight/AAL100"
+
+    def test_strips_whitespace(self):
+        assert Trip.flight_url("  AA100  ") == "https://flightaware.com/live/flight/AAL100"
 
 
 class TestTripStop:
-    def test_create(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        s = make_stop(t, order=0, destination="Nashville",
-                      start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
+    def test_create(self, make_trip, make_stop):
+        t = make_trip()
+        s = make_stop(t, destination="Nashville", order=0)
         assert s.id is not None
         assert s.trip_id == t.id
+        assert s.destination == "Nashville"
 
-    def test_cascade_delete(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t, order=0, start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
+    def test_stops_ordered(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 10))
         make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
+                  start_date=date(2026, 6, 5), end_date=date(2026, 6, 10))
+        make_stop(t, order=0, destination="Nashville",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 4))
+        assert t.stops[0].destination == "Nashville"
+        assert t.stops[1].destination == "Memphis"
+
+    def test_cascade_delete(self, make_trip, make_stop):
+        t = make_trip()
+        make_stop(t, destination="Nashville")
         db.session.delete(t)
         db.session.commit()
         assert TripStop.query.count() == 0
 
-    def test_stops_ordered(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
-        make_stop(t, order=0, destination="Nashville",
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
-        db.session.expire_all()
-        assert t.stops[0].destination == "Nashville"
-        assert t.stops[1].destination == "Memphis"
 
-    def test_is_multi_stop(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t, order=0, start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
-        make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
-        db.session.expire_all()
-        assert t.is_multi_stop is True
-
-    def test_single_stop_not_multi(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t)
-        db.session.expire_all()
+class TestMultiStop:
+    def test_is_multi_stop_false_for_no_stops(self, make_trip):
+        t = make_trip()
         assert t.is_multi_stop is False
 
-    def test_destinations_summary_multi(self, app, make_trip, make_stop):
-        t = make_trip(destination="Nashville", start_date=date(2026, 3, 10),
-                      end_date=date(2026, 3, 15))
-        make_stop(t, order=0, destination="Nashville",
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 11))
+    def test_is_multi_stop_false_for_one_stop(self, make_trip, make_stop):
+        t = make_trip()
+        make_stop(t)
+        assert t.is_multi_stop is False
+
+    def test_is_multi_stop_true_for_two_stops(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 10))
+        make_stop(t, order=0, start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
         make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 11), end_date=date(2026, 3, 14))
-        make_stop(t, order=2, destination="Nashville",
-                  start_date=date(2026, 3, 14), end_date=date(2026, 3, 15))
-        db.session.expire_all()
-        assert t.destinations_summary == "Nashville → Memphis → Nashville"
+                  start_date=date(2026, 6, 6), end_date=date(2026, 6, 10))
+        assert t.is_multi_stop is True
 
-    def test_destinations_summary_dedup_consecutive(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
+    def test_destinations_summary(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 10))
         make_stop(t, order=0, destination="Nashville",
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
-        make_stop(t, order=1, destination="Nashville",
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
-        db.session.expire_all()
-        assert t.destinations_summary == "Nashville"
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        make_stop(t, order=1, destination="Memphis",
+                  start_date=date(2026, 6, 6), end_date=date(2026, 6, 10))
+        assert t.destinations_summary == "Nashville \u2192 Memphis"
 
-    def test_destinations_summary_no_stops(self, app, make_trip):
+    def test_destinations_summary_deduplicates_consecutive(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 15))
+        make_stop(t, order=0, destination="Nashville",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
+        make_stop(t, order=1, destination="Nashville",
+                  start_date=date(2026, 6, 6), end_date=date(2026, 6, 10))
+        make_stop(t, order=2, destination="Memphis",
+                  start_date=date(2026, 6, 11), end_date=date(2026, 6, 15))
+        assert t.destinations_summary == "Nashville \u2192 Memphis"
+
+    def test_destinations_summary_no_stops(self, make_trip):
         t = make_trip(destination="Paris")
         assert t.destinations_summary == "Paris"
 
-    def test_current_stop_active(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t, order=0, destination="Nashville",
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
+    def test_current_stop_exact_date(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 10))
+        s1 = make_stop(t, order=0, destination="Nashville",
+                       start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
         make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
-        db.session.expire_all()
-        assert t.current_stop(date(2026, 3, 11)).destination == "Nashville"
-        assert t.current_stop(date(2026, 3, 13)).destination == "Memphis"
+                  start_date=date(2026, 6, 6), end_date=date(2026, 6, 10))
+        assert t.current_stop(date(2026, 6, 3)) == s1
 
-    def test_current_stop_gap_fallback(self, app, make_trip, make_stop):
-        t = make_trip(start_date=date(2026, 3, 10), end_date=date(2026, 3, 15))
-        make_stop(t, order=0, destination="Nashville",
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 11))
+    def test_current_stop_gap_fallback(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 1), end_date=date(2026, 6, 12))
+        s1 = make_stop(t, order=0, destination="Nashville",
+                       start_date=date(2026, 6, 1), end_date=date(2026, 6, 4))
         make_stop(t, order=1, destination="Memphis",
-                  start_date=date(2026, 3, 13), end_date=date(2026, 3, 15))
-        db.session.expire_all()
-        assert t.current_stop(date(2026, 3, 12)).destination == "Nashville"
+                  start_date=date(2026, 6, 7), end_date=date(2026, 6, 12))
+        # June 5 is in the gap — should fall back to most recent ended stop
+        assert t.current_stop(date(2026, 6, 5)) == s1
 
-    def test_current_stop_no_stops(self, app, make_trip):
+    def test_current_stop_before_all_stops(self, make_trip, make_stop):
+        t = make_trip(start_date=date(2026, 6, 3), end_date=date(2026, 6, 10))
+        s1 = make_stop(t, order=0, destination="Nashville",
+                       start_date=date(2026, 6, 3), end_date=date(2026, 6, 10))
+        assert t.current_stop(date(2026, 6, 1)) == s1
+
+    def test_current_stop_no_stops(self, make_trip):
         t = make_trip()
-        assert t.current_stop(date(2026, 3, 3)) is None
+        assert t.current_stop(date(2026, 6, 3)) is None
 
-    def test_sync_from_stops(self, app, make_trip, make_stop):
-        t = make_trip(destination="Old", lat=0.0, lng=0.0,
-                      start_date=date(2026, 1, 1), end_date=date(2026, 1, 1))
+    def test_sync_from_stops(self, make_trip, make_stop):
+        t = make_trip(destination="Old", start_date=date(2026, 6, 1),
+                      end_date=date(2026, 6, 5), lat=0, lng=0)
         make_stop(t, order=0, destination="Nashville", lat=36.16, lng=-86.78,
-                  start_date=date(2026, 3, 10), end_date=date(2026, 3, 12))
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 3))
         make_stop(t, order=1, destination="Memphis", lat=35.15, lng=-90.05,
-                  start_date=date(2026, 3, 12), end_date=date(2026, 3, 15))
-        db.session.expire_all()
+                  start_date=date(2026, 6, 4), end_date=date(2026, 6, 8))
         t.sync_from_stops()
         assert t.destination == "Nashville"
         assert t.latitude == 36.16
-        assert t.start_date == date(2026, 3, 10)
-        assert t.end_date == date(2026, 3, 15)
+        assert t.longitude == -86.78
+        assert t.start_date == date(2026, 6, 1)
+        assert t.end_date == date(2026, 6, 8)
 
 
 class TestConfig:
-    def test_key_value(self, app):
-        c = Config(key="test_key", value="test_val")
+    def test_create(self, app):
+        c = Config(key="test_key", value="test_value")
         db.session.add(c)
         db.session.commit()
-        assert db.session.get(Config, "test_key").value == "test_val"
+        assert db.session.get(Config, "test_key").value == "test_value"

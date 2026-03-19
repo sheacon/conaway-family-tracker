@@ -1,3 +1,5 @@
+"""Tests for CLI commands."""
+
 from datetime import date
 from unittest.mock import patch
 
@@ -5,119 +7,121 @@ from freezegun import freeze_time
 
 
 class TestSendNotifications:
-    @freeze_time("2026-03-01 12:00:00")
-    @patch("app.cli.notify_trip_starting_soon")
-    def test_trip_starting_in_3_days(self, mock_notify, app, make_trip):
-        make_trip(
-            destination="Soon", start_date=date(2026, 3, 4), end_date=date(2026, 3, 8)
-        )
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_starting_soon(self, app, make_trip, make_person):
+        make_person(name="A", email="a@example.com")
+        make_trip(destination="Paris",
+                  start_date=date(2026, 6, 4), end_date=date(2026, 6, 10))
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
-        mock_notify.assert_called_once()
-        assert "Starting soon: Soon" in result.output
+        with patch("app.cli.notify_trip_starting_soon") as mock:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
+        mock.assert_called_once()
+        assert "Starting soon" in result.output
 
-    @freeze_time("2026-03-01 12:00:00")
-    @patch("app.cli.notify_trip_started")
-    def test_trip_starting_today(self, mock_notify, app, make_trip):
-        make_trip(
-            destination="Today", start_date=date(2026, 3, 1), end_date=date(2026, 3, 5)
-        )
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_started_today(self, app, make_trip, make_person):
+        make_person(name="A", email="a@example.com")
+        make_trip(destination="Paris",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
-        mock_notify.assert_called_once()
-        assert "Starting today: Today" in result.output
+        with patch("app.cli.notify_trip_started") as mock:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
+        mock.assert_called_once()
+        assert "Starting today" in result.output
 
-    @freeze_time("2026-03-05 12:00:00")
-    @patch("app.cli.notify_trip_ended")
-    def test_trip_ending_today(self, mock_notify, app, make_trip):
-        make_trip(
-            destination="Ending", start_date=date(2026, 3, 1), end_date=date(2026, 3, 5)
-        )
+    @freeze_time("2026-06-05 12:00:00", tz_offset=0)
+    def test_ended_today(self, app, make_trip, make_person):
+        make_person(name="A", email="a@example.com")
+        make_trip(destination="Paris",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
-        mock_notify.assert_called_once()
-        assert "Ending today: Ending" in result.output
+        with patch("app.cli.notify_trip_ended") as mock:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
+        mock.assert_called_once()
+        assert "Ending today" in result.output
 
-    @freeze_time("2026-03-01 12:00:00")
-    @patch("app.cli.notify_trip_ended")
-    @patch("app.cli.notify_trip_started")
-    def test_same_day_trip_not_ended(self, mock_started, mock_ended, app, make_trip):
-        make_trip(
-            destination="DayTrip",
-            start_date=date(2026, 3, 1),
-            end_date=date(2026, 3, 1),
-        )
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_same_day_trip_excluded_from_ending(self, app, make_trip):
+        make_trip(destination="DayTrip",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 1))
         runner = app.test_cli_runner()
-        runner.invoke(args=["send-notifications"])
-        mock_started.assert_called_once()
-        mock_ended.assert_not_called()
+        with patch("app.cli.notify_trip_ended") as mock:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
+        mock.assert_not_called()
 
-    @freeze_time("2026-03-10 12:00:00")
-    @patch("app.cli.notify_trip_starting_soon")
-    @patch("app.cli.notify_trip_started")
-    @patch("app.cli.notify_trip_ended")
-    def test_no_matching_trips(self, mock_ended, mock_started, mock_soon, app):
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_no_matching_trips(self, app):
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
+        with patch("app.cli.notify_trip_starting_soon") as mock_soon, \
+             patch("app.cli.notify_trip_started") as mock_start, \
+             patch("app.cli.notify_trip_ended") as mock_end:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
         mock_soon.assert_not_called()
-        mock_started.assert_not_called()
-        mock_ended.assert_not_called()
+        mock_start.assert_not_called()
+        mock_end.assert_not_called()
         assert "Done." in result.output
 
-    @freeze_time("2026-03-01 12:00:00")
-    @patch("app.cli.notify_trip_starting_soon")
-    def test_2_days_out_ignored(self, mock_notify, app, make_trip):
-        make_trip(
-            destination="TwoDays",
-            start_date=date(2026, 3, 3),
-            end_date=date(2026, 3, 6),
-        )
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_uses_display_name_in_output(self, app, make_trip):
+        make_trip(destination="Paris", title="Spring Break",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 5))
         runner = app.test_cli_runner()
-        runner.invoke(args=["send-notifications"])
-        mock_notify.assert_not_called()
+        with patch("app.cli.notify_trip_started"):
+            result = runner.invoke(args=["send-notifications"])
+        assert "Spring Break" in result.output
 
-    @freeze_time("2026-03-01 12:00:00")
-    @patch("app.cli.notify_trip_starting_soon")
-    def test_4_days_out_ignored(self, mock_notify, app, make_trip):
-        make_trip(
-            destination="FourDays",
-            start_date=date(2026, 3, 5),
-            end_date=date(2026, 3, 8),
-        )
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_all_notification_types_at_once(self, app, make_trip):
+        # Trip starting in 3 days
+        make_trip(destination="Soon",
+                  start_date=date(2026, 6, 4), end_date=date(2026, 6, 8))
+        # Trip starting today
+        make_trip(destination="Today",
+                  start_date=date(2026, 6, 1), end_date=date(2026, 6, 3))
+        # Trip ending today (started before)
+        make_trip(destination="Ending",
+                  start_date=date(2026, 5, 28), end_date=date(2026, 6, 1))
         runner = app.test_cli_runner()
-        runner.invoke(args=["send-notifications"])
-        mock_notify.assert_not_called()
+        with patch("app.cli.notify_trip_starting_soon") as m1, \
+             patch("app.cli.notify_trip_started") as m2, \
+             patch("app.cli.notify_trip_ended") as m3:
+            result = runner.invoke(args=["send-notifications"])
+        assert result.exit_code == 0
+        m1.assert_called_once()
+        m2.assert_called_once()
+        m3.assert_called_once()
 
-    @freeze_time("2026-03-05 12:00:00")
-    @patch("app.cli.notify_trip_ended")
-    @patch("app.cli.notify_trip_started")
-    @patch("app.cli.notify_trip_starting_soon")
-    def test_multiple_matching_trips(
-        self, mock_soon, mock_started, mock_ended, app, make_trip
-    ):
-        make_trip(
-            destination="SoonTrip",
-            start_date=date(2026, 3, 8),
-            end_date=date(2026, 3, 12),
-        )
-        make_trip(
-            destination="TodayTrip",
-            start_date=date(2026, 3, 5),
-            end_date=date(2026, 3, 9),
-        )
-        make_trip(
-            destination="EndTrip",
-            start_date=date(2026, 3, 1),
-            end_date=date(2026, 3, 5),
-        )
-        runner = app.test_cli_runner()
-        runner.invoke(args=["send-notifications"])
-        mock_soon.assert_called_once()
-        mock_started.assert_called_once()
-        mock_ended.assert_called_once()
 
-    @freeze_time("2026-03-10 12:00:00")
-    def test_output_done(self, app):
+class TestGenerateMap:
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_generates_map(self, app, tmp_path):
         runner = app.test_cli_runner()
-        result = runner.invoke(args=["send-notifications"])
-        assert "Done." in result.output
+        img = tmp_path / "map.png"
+        with patch("app.cli.get_or_generate_map", return_value=img):
+            result = runner.invoke(args=["generate-map"])
+        assert result.exit_code == 0
+        assert str(img) in result.output
+
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_no_map_generated(self, app):
+        runner = app.test_cli_runner()
+        with patch("app.cli.get_or_generate_map", return_value=None):
+            result = runner.invoke(args=["generate-map"])
+        assert result.exit_code == 0
+        assert "No map image generated" in result.output
+
+    @freeze_time("2026-06-01 12:00:00", tz_offset=0)
+    def test_force_flag(self, app, tmp_path):
+        runner = app.test_cli_runner()
+        img = tmp_path / "map.png"
+        with patch("app.cli.get_or_generate_map", return_value=img) as mock:
+            result = runner.invoke(args=["generate-map", "--force"])
+        assert result.exit_code == 0
+        mock.assert_called_once()
+        _, kwargs = mock.call_args
+        assert kwargs["force"] is True

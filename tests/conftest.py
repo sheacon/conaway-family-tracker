@@ -83,9 +83,9 @@ def make_trip(app):
               lat=48.8566, lng=2.3522, people=None, title=None, notes=None,
               outbound_flight=None, return_flight=None, transport_mode="flying"):
         if start_date is None:
-            start_date = date(2026, 3, 1)
+            start_date = date(2026, 6, 1)
         if end_date is None:
-            end_date = date(2026, 3, 5)
+            end_date = date(2026, 6, 5)
         t = Trip(
             destination=destination,
             title=title,
