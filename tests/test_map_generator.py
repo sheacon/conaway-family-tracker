@@ -12,7 +12,8 @@ class TestBuildMapPrompt:
                       "traveling": False, "travel_day": False}]
         prompt = build_map_prompt(locations)
         assert "Alice is in Chicago" in prompt
-        assert "cartoon map" in prompt.lower()
+        assert "cartoon" in prompt.lower()
+        assert "map" in prompt.lower()
 
     def test_multiple_people_same_location(self):
         locations = [

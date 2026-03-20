@@ -117,9 +117,26 @@ def _current_locations():
                         loc_lat = (current_stop.latitude + next_stop.latitude) / 2
                         loc_lng = (current_stop.longitude + next_stop.longitude) / 2
 
+            # Destination longitude for map direction hints
+            if today == active_trip.end_date:
+                # Return day: destination is home
+                direction_dest_lng = home_lng
+            elif active_trip.is_multi_stop and current_stop:
+                direction_dest_lng = current_stop.longitude
+            else:
+                first_stop = active_trip.stops[0] if active_trip.stops else None
+                direction_dest_lng = first_stop.longitude if first_stop else active_trip.longitude
+
+            # Geographic destination for map prompt (not the trip title)
+            if current_stop:
+                geo_destination = current_stop.destination
+            else:
+                geo_destination = active_trip.destination
+
             locations.append({
                 "name": person.name,
                 "label": active_trip.display_name,
+                "geo_destination": geo_destination,
                 "lat": loc_lat,
                 "lng": loc_lng,
                 "traveling": True,
@@ -133,6 +150,8 @@ def _current_locations():
                 "trip_destination": trip_destination,
                 "trip_dates": trip_dates,
                 "home_label": person.default_location_label,
+                "home_lng": home_lng,
+                "dest_lng": direction_dest_lng,
             })
         else:
             locations.append({

@@ -7,6 +7,17 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 
+def _travel_direction(home_label: str, dest_label: str, home_lng: float | None, dest_lng: float | None) -> str:
+    """Return a cardinal direction hint based on longitude difference."""
+    if home_lng is not None and dest_lng is not None:
+        diff = dest_lng - home_lng
+        if diff < -2:
+            return "westward"
+        elif diff > 2:
+            return "eastward"
+    return ""
+
+
 def build_map_prompt(locations: list[dict]) -> str:
     """Build a text prompt describing everyone's current location."""
     # Group people by location label and travel status
@@ -30,11 +41,27 @@ def build_map_prompt(locations: list[dict]) -> str:
                 "train": "taking a train",
                 "boat": "taking a boat",
             }.get(mode, "traveling")
-            dest = label
+            mode_icon = {
+                "flying": "a plane",
+                "driving": "a car",
+                "train": "a train",
+                "boat": "a boat",
+            }.get(mode, "a vehicle")
+            # Use geographic destination (city name) not trip title
+            geo_dest = members[0].get("geo_destination") or label
+            trip_title = label if label != geo_dest else None
+            direction = _travel_direction(
+                home_label, geo_dest,
+                members[0].get("home_lng"),
+                members[0].get("dest_lng"),
+            )
+            direction_text = f" {direction}" if direction else ""
+            verb = "are" if len(members) > 1 else "is"
+            title_note = f" (for a {trip_title})" if trip_title else ""
             sentences.append(
-                f"{names} are {mode_verb} from {home_label} to {dest}."
-                if len(members) > 1 else
-                f"{names} is {mode_verb} from {home_label} to {dest}."
+                f"{names} {verb} {mode_verb} from {home_label} to {geo_dest}{title_note}. "
+                f"Show {mode_icon} between {home_label} and {geo_dest} with a dashed "
+                f"travel line, pointing{direction_text} toward {geo_dest}."
             )
         else:
             sentences.append(
@@ -45,10 +72,12 @@ def build_map_prompt(locations: list[dict]) -> str:
 
     location_text = " ".join(sentences)
     prompt = (
-        f"Create a basic 16:9 cartoon map for the Conaway Family. "
+        f"Create a 16:9 cartoon illustrated map titled 'Conaway Family Map'. "
         f"{location_text} "
         f"Place recognizable cartoon versions of each person at their location "
-        f"on the map, matching the labeled reference photo provided."
+        f"on the map, matching the labeled reference photo provided. "
+        f"For any travel vehicles (planes, cars, etc.), make sure they face and "
+        f"point in the direction of travel toward the destination."
     )
     return prompt
 
