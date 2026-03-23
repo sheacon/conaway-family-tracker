@@ -77,7 +77,9 @@ def build_map_prompt(locations: list[dict]) -> str:
         f"Place recognizable cartoon versions of each person at their location "
         f"on the map, matching the labeled reference photo provided. "
         f"For any travel vehicles (planes, cars, etc.), make sure they face and "
-        f"point in the direction of travel toward the destination."
+        f"point in the direction of travel toward the destination. "
+        f"Double-check the geographic accuracy of all city and location placements — "
+        f"make sure each city is positioned correctly relative to other cities and landmarks."
     )
     return prompt
 
