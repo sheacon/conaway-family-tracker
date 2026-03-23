@@ -1,0 +1,8 @@
+{
+  "people": ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace", "Person G", "Iris", "Jack"],
+  "families": [
+    {"name": "Parents", "members": ["Alice", "Bob"]},
+    {"name": "Family A", "members": ["Carol", "Dave", "Eve", "Frank", "Grace"]},
+    {"name": "Family B", "members": ["Person G", "Iris", "Jack"]}
+  ]
+}

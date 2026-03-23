@@ -48,7 +48,7 @@ uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app(
 - `app/cli.py` — `flask send-notifications` CLI command for trip start/end emails; `flask generate-map` for AI cartoon map generation (both scheduled via GitHub Actions)
 - `app/map_generator.py` — Gemini API integration: builds location prompt, generates cartoon map image, caches to disk
 - `app/filters.py` — Jinja2 template filters: `flight_link` (FlightAware URLs), `group_by_family`
-- `app/seed.py` — Seeds default family members and families on first run
+- `app/seed.py` — Seeds family members and families on first run from `seed_data.json`
 - `app/templates/` — Jinja2 templates using Pico CSS v2
 - `app/static/style.css` — Custom styles and map styling
 - `config.py` — Flask configuration from environment variables
@@ -63,7 +63,7 @@ uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app(
 - **Overlapping trips**: When a person has overlapping trips on the same day, before noon ET shows the first trip, after noon ET shows the last trip
 - **AI cartoon map**: Dashboard shows a Gemini-generated cartoon map image (pre-generated via `flask generate-map` CLI command, cached to disk). Family reference photo at `app/static/family_reference.png` is sent to Gemini alongside a location prompt
 - **Geocoding**: Client-side Nominatim (OpenStreetMap) via fetch in trip form
-- **Seeding**: `seed_people()` in `app/seed.py` auto-seeds family members on first run; checks for table existence to survive pre-migration state
+- **Seeding**: `seed_people()` in `app/seed.py` reads from `seed_data.json` (gitignored) to auto-seed family members on first run. Copy `seed_data.example.json` to `seed_data.json` and customize. Checks for table existence to survive pre-migration state
 - **Scheduled notifications**: GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs `flask send-notifications` daily at 8 AM ET. It wakes the Fly.io machine via HTTP (since `auto_stop_machines` is enabled), then SSHes in to run the command. Requires an org-scoped `FLY_API_TOKEN` GitHub secret (deploy tokens lack SSH access)
 
 ## Environment Variables

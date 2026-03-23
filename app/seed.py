@@ -1,19 +1,32 @@
+import json
+import logging
+from pathlib import Path
+
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError
 
 from app import db
 from app.models import Family, Person
 
-FAMILY_MEMBERS = [
-    "Person A", "Person B", "Person C", "Person D", "Person E",
-    "Person F", "Person G", "Person H", "Person I", "Person J",
-]
+logger = logging.getLogger(__name__)
 
-DEFAULT_FAMILIES = [
-    ("Family A", ["Person A", "Person B"]),
-    ("Family B", ["Person C", "Person D", "Person E", "Person F", "Person G"]),
-    ("Family C", ["Person H", "Person I", "Person J"]),
-]
+_SEED_DATA_PATH = Path(__file__).resolve().parent.parent / "seed_data.json"
+
+
+def _load_seed_data() -> dict | None:
+    """Load seed data from JSON file, returning None if unavailable."""
+    if not _SEED_DATA_PATH.exists():
+        logger.warning(
+            "Seed data file not found at %s — skipping seeding. "
+            "Copy seed_data.example.json to seed_data.json to configure.",
+            _SEED_DATA_PATH,
+        )
+        return None
+    try:
+        return json.loads(_SEED_DATA_PATH.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.error("Failed to read seed data from %s: %s", _SEED_DATA_PATH, exc)
+        return None
 
 
 def seed_people() -> None:
@@ -30,10 +43,14 @@ def seed_people() -> None:
         _backfill_families()
         return
 
-    for name in FAMILY_MEMBERS:
+    data = _load_seed_data()
+    if data is None:
+        return
+
+    for name in data.get("people", []):
         db.session.add(Person(name=name))
     db.session.commit()
-    _seed_families()
+    _seed_families(data)
 
 
 def _backfill_families() -> None:
@@ -42,16 +59,18 @@ def _backfill_families() -> None:
     if not inspector.has_table("family"):
         return
     if Family.query.first() is None:
-        _seed_families()
+        data = _load_seed_data()
+        if data is not None:
+            _seed_families(data)
 
 
-def _seed_families() -> None:
+def _seed_families(data: dict) -> None:
     """Create default families and assign members."""
-    for order, (fname, member_names) in enumerate(DEFAULT_FAMILIES):
-        family = Family(name=fname, sort_order=order)
+    for order, family_def in enumerate(data.get("families", [])):
+        family = Family(name=family_def["name"], sort_order=order)
         db.session.add(family)
         db.session.flush()
-        for mname in member_names:
+        for mname in family_def.get("members", []):
             person = Person.query.filter_by(name=mname).first()
             if person:
                 person.family_id = family.id
