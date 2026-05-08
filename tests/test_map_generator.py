@@ -51,13 +51,22 @@ class TestBuildMapPrompt:
         assert "Bob is traveling from Chicago to Nashville by car" in prompt
 
     def test_return_travel_day_swaps_from_to(self):
-        # On a return day, from = trip destination, to = home
+        # On a return day, from = trip destination, to = home, and "after" replaces "for"
         locations = [{"name": "Shea", "label": "McLean Visit",
                       "traveling": True, "travel_day": True,
                       "from_label": "McLean", "to_label": "Richmond",
-                      "transport_mode": "driving"}]
+                      "transport_mode": "driving", "is_return": True}]
         prompt = build_map_prompt(locations)
-        assert "from McLean to Richmond" in prompt
+        assert "Shea is traveling from McLean to Richmond by car after a McLean Visit" in prompt
+
+    def test_outbound_travel_day_uses_for(self):
+        # On an outbound day, the trip title reads "for a {title}"
+        locations = [{"name": "Shea", "label": "McLean Visit",
+                      "traveling": True, "travel_day": True,
+                      "from_label": "Richmond", "to_label": "McLean",
+                      "transport_mode": "driving", "is_return": False}]
+        prompt = build_map_prompt(locations)
+        assert "Shea is traveling from Richmond to McLean by car for a McLean Visit" in prompt
 
     def test_non_travel_day_traveling(self):
         locations = [{"name": "Alice", "label": "Paris",

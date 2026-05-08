@@ -118,8 +118,10 @@ def _current_locations():
                         loc_lng = (current_stop.longitude + next_stop.longitude) / 2
 
             # From/to labels for the map prompt — depends on which leg of the trip today is
+            is_return = False
             if today == active_trip.end_date and active_trip.start_date != active_trip.end_date:
                 # Return travel day: traveling from the trip destination back home
+                is_return = True
                 last_stop = active_trip.stops[-1] if active_trip.stops else None
                 from_label = last_stop.destination if last_stop else active_trip.destination
                 to_label = person.default_location_label
@@ -161,6 +163,7 @@ def _current_locations():
                 "trip_dates": trip_dates,
                 "from_label": from_label,
                 "to_label": to_label,
+                "is_return": is_return,
             })
         else:
             locations.append({
