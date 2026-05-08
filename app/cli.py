@@ -40,7 +40,7 @@ def send_notifications():
 )
 @with_appcontext
 def generate_map(force: bool) -> None:
-    """Generate the Gemini AI cartoon map image."""
+    """Generate the OpenAI AI cartoon map image."""
     locations = _current_locations()
     result = get_or_generate_map(locations, force=force)
     if result:

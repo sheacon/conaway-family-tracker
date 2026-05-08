@@ -153,7 +153,7 @@ class TestGetOrGenerateMap:
 
 class TestGenerateMapImage:
     def test_no_api_key(self, app):
-        app.config["GEMINI_API_KEY"] = None
+        app.config["OPENAI_API_KEY"] = None
         from app.map_generator import generate_map_image
         result = generate_map_image("test prompt", "/fake/path.png")
         assert result is None

@@ -46,7 +46,7 @@ uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app(
 - `app/admin.py` — Blueprint at `/admin`: CRUD for people and families, notification toggle
 - `app/email.py` — Resend API email helpers for trip notifications
 - `app/cli.py` — `flask send-notifications` CLI command for trip start/end emails; `flask generate-map` for AI cartoon map generation (both scheduled via GitHub Actions)
-- `app/map_generator.py` — Gemini API integration: builds location prompt, generates cartoon map image, caches to disk
+- `app/map_generator.py` — OpenAI `gpt-image-2` integration: builds location prompt, generates cartoon map image, caches to disk
 - `app/filters.py` — Jinja2 template filters: `flight_link` (FlightAware URLs), `group_by_family`
 - `app/seed.py` — Seeds family members and families on first run from `seed_data.json`
 - `app/templates/` — Jinja2 templates using Pico CSS v2
@@ -61,7 +61,7 @@ uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app(
 - **SQLite everywhere**: Local dev uses `app.db` in repo root; production uses `/data/app.db` on a Fly.io persistent volume
 - **Multi-stop trips**: Trips have ordered `TripStop` records. Denormalized fields on `Trip` (`destination`, `latitude`, `longitude`, `start_date`, `end_date`) are synced from stops via `sync_from_stops()`
 - **Overlapping trips**: When a person has overlapping trips on the same day, before noon ET shows the first trip, after noon ET shows the last trip
-- **AI cartoon map**: Dashboard shows a Gemini-generated cartoon map image (pre-generated via `flask generate-map` CLI command, cached to disk). Family reference photo at `app/static/family_reference.png` is sent to Gemini alongside a location prompt
+- **AI cartoon map**: Dashboard shows an OpenAI `gpt-image-2`-generated cartoon map image (pre-generated via `flask generate-map` CLI command, cached to disk). Family reference photo at `app/static/family_reference.png` is sent to OpenAI's `images.edit` endpoint alongside a location prompt. The CLI hashes the prompt and short-circuits when locations haven't changed, so the API only fires on real updates
 - **Geocoding**: Client-side Nominatim (OpenStreetMap) via fetch in trip form
 - **Seeding**: `seed_people()` in `app/seed.py` reads from `seed_data.json` (gitignored) to auto-seed family members on first run. Copy `seed_data.example.json` to `seed_data.json` and customize. Checks for table existence to survive pre-migration state
 - **Scheduled notifications**: GitHub Actions workflow (`.github/workflows/daily-notifications.yml`) runs `flask send-notifications` daily at 8 AM ET. It wakes the Fly.io machine via HTTP (since `auto_stop_machines` is enabled), then SSHes in to run the command. Requires an org-scoped `FLY_API_TOKEN` GitHub secret (deploy tokens lack SSH access)
@@ -75,4 +75,4 @@ uv run flask db upgrade && uv run gunicorn -w 1 -b 0.0.0.0:8080 "app:create_app(
 | `DATABASE_URL` | `sqlite:///app.db` | Database connection string |
 | `RESEND_API_KEY` | (none) | Resend email API key |
 | `RESEND_FROM_EMAIL` | (none) | Sender address |
-| `GEMINI_API_KEY` | (none) | Google Gemini API key for cartoon map generation |
+| `OPENAI_API_KEY` | (none) | OpenAI API key for `gpt-image-2` cartoon map generation |

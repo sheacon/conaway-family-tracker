@@ -72,7 +72,7 @@ def build_map_prompt(locations: list[dict]) -> str:
 
     location_text = " ".join(sentences)
     prompt = (
-        f"Create a 16:9 cartoon illustrated map titled 'Conaway Family Map'. "
+        f"Create a 3:2 cartoon illustrated map titled 'Conaway Family Map'. "
         f"{location_text} "
         f"Place recognizable cartoon versions of each person at their location "
         f"on the map, matching the labeled reference photo provided. "
@@ -107,46 +107,35 @@ def _cache_paths() -> tuple[Path, Path]:
 
 
 def generate_map_image(prompt: str, reference_image_path: str) -> bytes | None:
-    """Call the Gemini API to generate a cartoon map image.
+    """Call the OpenAI API to generate a cartoon map image.
 
     Returns image bytes on success, None on failure.
     """
-    api_key = current_app.config.get("GEMINI_API_KEY")
+    api_key = current_app.config.get("OPENAI_API_KEY")
     if not api_key:
-        logger.error("GEMINI_API_KEY not configured")
+        logger.error("OPENAI_API_KEY not configured")
         return None
 
     try:
-        from google import genai
-        from google.genai import types
-        from PIL import Image
-        import io
+        import base64
+        from openai import OpenAI
 
-        client = genai.Client(api_key=api_key)
+        client = OpenAI(api_key=api_key)
 
-        ref_image = Image.open(reference_image_path)
+        with open(reference_image_path, "rb") as ref:
+            result = client.images.edit(
+                model="gpt-image-2",
+                image=ref,
+                prompt=prompt,
+                size="1536x1024",
+                quality="high",
+                output_format="png",
+            )
 
-        response = client.models.generate_content(
-            model="gemini-3-pro-image-preview",
-            contents=[prompt, ref_image],
-            config=types.GenerateContentConfig(
-                response_modalities=["TEXT", "IMAGE"],
-            ),
-        )
-
-        # Extract image from response parts
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                image = Image.open(io.BytesIO(part.inline_data.data))
-                buf = io.BytesIO()
-                image.save(buf, format="PNG")
-                return buf.getvalue()
-
-        logger.error("No image found in Gemini response")
-        return None
+        return base64.b64decode(result.data[0].b64_json)
 
     except Exception:
-        logger.exception("Failed to generate map image via Gemini API")
+        logger.exception("Failed to generate map image via OpenAI API")
         return None
 
 

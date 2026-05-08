@@ -11,4 +11,4 @@ class Config:
     )
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
     RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL")
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
