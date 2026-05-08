@@ -7,17 +7,6 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 
-def _travel_direction(home_label: str, dest_label: str, home_lng: float | None, dest_lng: float | None) -> str:
-    """Return a cardinal direction hint based on longitude difference."""
-    if home_lng is not None and dest_lng is not None:
-        diff = dest_lng - home_lng
-        if diff < -2:
-            return "westward"
-        elif diff > 2:
-            return "eastward"
-    return ""
-
-
 def build_map_prompt(locations: list[dict]) -> str:
     """Build a text prompt describing everyone's current location."""
     # Group people by location label and travel status
@@ -47,21 +36,13 @@ def build_map_prompt(locations: list[dict]) -> str:
                 "train": "a train",
                 "boat": "a boat",
             }.get(mode, "a vehicle")
-            # Geographic destination they're heading to today (not the trip title)
             to_label = members[0].get("to_label") or label
             trip_title = label if label != to_label else None
-            direction = _travel_direction(
-                from_label, to_label,
-                members[0].get("from_lng"),
-                members[0].get("to_lng"),
-            )
-            direction_text = f" {direction}" if direction else ""
             verb = "are" if len(members) > 1 else "is"
             title_note = f" (for a {trip_title})" if trip_title else ""
             sentences.append(
                 f"{names} {verb} {mode_verb} from {from_label} to {to_label}{title_note}. "
-                f"Show {mode_icon} between {from_label} and {to_label} with a dashed "
-                f"travel line, pointing{direction_text} toward {to_label}."
+                f"Show {mode_icon} between {from_label} and {to_label} with a dashed travel line."
             )
         else:
             sentences.append(
@@ -76,8 +57,6 @@ def build_map_prompt(locations: list[dict]) -> str:
         f"{location_text} "
         f"Place recognizable cartoon versions of each person at their location "
         f"on the map, matching the labeled reference photo provided. "
-        f"For any travel vehicles (planes, cars, etc.), make sure they face and "
-        f"point in the direction of travel toward the destination. "
         f"Double-check the geographic accuracy of all city and location placements — "
         f"make sure each city is positioned correctly relative to other cities and landmarks."
     )
