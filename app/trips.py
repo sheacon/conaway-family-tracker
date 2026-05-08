@@ -117,26 +117,42 @@ def _current_locations():
                         loc_lat = (current_stop.latitude + next_stop.latitude) / 2
                         loc_lng = (current_stop.longitude + next_stop.longitude) / 2
 
-            # Destination longitude for map direction hints
-            if today == active_trip.end_date:
-                # Return day: destination is home
-                direction_dest_lng = home_lng
-            elif active_trip.is_multi_stop and current_stop:
-                direction_dest_lng = current_stop.longitude
+            # From/to for the map prompt — depends on which leg of the trip today is
+            if today == active_trip.end_date and active_trip.start_date != active_trip.end_date:
+                # Return travel day: traveling from the trip destination back home
+                last_stop = active_trip.stops[-1] if active_trip.stops else None
+                from_label = last_stop.destination if last_stop else active_trip.destination
+                from_lng = last_stop.longitude if last_stop else active_trip.longitude
+                to_label = person.default_location_label
+                to_lng = home_lng
+            elif (active_trip.is_multi_stop and current_stop
+                  and current_stop.end_date < today):
+                # Gap day between stops: from current stop to next stop
+                stop_idx = next(
+                    (i for i, s in enumerate(active_trip.stops) if s.id == current_stop.id), 0
+                )
+                next_stop = (
+                    active_trip.stops[stop_idx + 1]
+                    if stop_idx + 1 < len(active_trip.stops) else None
+                )
+                from_label = current_stop.destination
+                from_lng = current_stop.longitude
+                to_label = next_stop.destination if next_stop else active_trip.destination
+                to_lng = next_stop.longitude if next_stop else active_trip.longitude
             else:
+                # Outbound, single-day, or at a stop: from home to current/first destination
                 first_stop = active_trip.stops[0] if active_trip.stops else None
-                direction_dest_lng = first_stop.longitude if first_stop else active_trip.longitude
-
-            # Geographic destination for map prompt (not the trip title)
-            if current_stop:
-                geo_destination = current_stop.destination
-            else:
-                geo_destination = active_trip.destination
+                from_label = person.default_location_label
+                from_lng = home_lng
+                to_label = (
+                    current_stop.destination if current_stop
+                    else (first_stop.destination if first_stop else active_trip.destination)
+                )
+                to_lng = first_stop.longitude if first_stop else active_trip.longitude
 
             locations.append({
                 "name": person.name,
                 "label": active_trip.display_name,
-                "geo_destination": geo_destination,
                 "lat": loc_lat,
                 "lng": loc_lng,
                 "traveling": True,
@@ -149,9 +165,10 @@ def _current_locations():
                 "stop_info": stop_info,
                 "trip_destination": trip_destination,
                 "trip_dates": trip_dates,
-                "home_label": person.default_location_label,
-                "home_lng": home_lng,
-                "dest_lng": direction_dest_lng,
+                "from_label": from_label,
+                "from_lng": from_lng,
+                "to_label": to_label,
+                "to_lng": to_lng,
             })
         else:
             locations.append({
@@ -165,7 +182,6 @@ def _current_locations():
                 "family_sort": person.family.sort_order if person.family else 999,
                 "next_trip": next_trip_info,
                 "flight": None,
-                "home_label": person.default_location_label,
             })
     return locations
 

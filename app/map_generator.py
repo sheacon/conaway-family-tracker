@@ -33,7 +33,7 @@ def build_map_prompt(locations: list[dict]) -> str:
         )
 
         if travel_day and members[0].get("traveling"):
-            home_label = members[0].get("home_label", "Home")
+            from_label = members[0].get("from_label", "Home")
             mode = members[0].get("transport_mode", "flying")
             mode_verb = {
                 "flying": "flying",
@@ -47,21 +47,21 @@ def build_map_prompt(locations: list[dict]) -> str:
                 "train": "a train",
                 "boat": "a boat",
             }.get(mode, "a vehicle")
-            # Use geographic destination (city name) not trip title
-            geo_dest = members[0].get("geo_destination") or label
-            trip_title = label if label != geo_dest else None
+            # Geographic destination they're heading to today (not the trip title)
+            to_label = members[0].get("to_label") or label
+            trip_title = label if label != to_label else None
             direction = _travel_direction(
-                home_label, geo_dest,
-                members[0].get("home_lng"),
-                members[0].get("dest_lng"),
+                from_label, to_label,
+                members[0].get("from_lng"),
+                members[0].get("to_lng"),
             )
             direction_text = f" {direction}" if direction else ""
             verb = "are" if len(members) > 1 else "is"
             title_note = f" (for a {trip_title})" if trip_title else ""
             sentences.append(
-                f"{names} {verb} {mode_verb} from {home_label} to {geo_dest}{title_note}. "
-                f"Show {mode_icon} between {home_label} and {geo_dest} with a dashed "
-                f"travel line, pointing{direction_text} toward {geo_dest}."
+                f"{names} {verb} {mode_verb} from {from_label} to {to_label}{title_note}. "
+                f"Show {mode_icon} between {from_label} and {to_label} with a dashed "
+                f"travel line, pointing{direction_text} toward {to_label}."
             )
         else:
             sentences.append(

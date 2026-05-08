@@ -37,7 +37,8 @@ class TestBuildMapPrompt:
     def test_travel_day_shows_transit(self):
         locations = [{"name": "Alice", "label": "Paris",
                       "traveling": True, "travel_day": True,
-                      "home_label": "Chicago", "transport_mode": "flying"}]
+                      "from_label": "Chicago", "to_label": "Paris",
+                      "transport_mode": "flying"}]
         prompt = build_map_prompt(locations)
         assert "flying" in prompt
         assert "Chicago" in prompt
@@ -46,9 +47,32 @@ class TestBuildMapPrompt:
     def test_travel_day_driving(self):
         locations = [{"name": "Bob", "label": "Nashville",
                       "traveling": True, "travel_day": True,
-                      "home_label": "Chicago", "transport_mode": "driving"}]
+                      "from_label": "Chicago", "to_label": "Nashville",
+                      "transport_mode": "driving"}]
         prompt = build_map_prompt(locations)
         assert "driving" in prompt
+
+    def test_return_travel_day_swaps_from_to(self):
+        # On a return day, from = trip destination, to = home
+        locations = [{"name": "Shea", "label": "McLean Visit",
+                      "traveling": True, "travel_day": True,
+                      "from_label": "McLean", "to_label": "Richmond",
+                      "from_lng": -77.18, "to_lng": -77.43,
+                      "transport_mode": "driving"}]
+        prompt = build_map_prompt(locations)
+        assert "from McLean to Richmond" in prompt
+        assert "toward Richmond" in prompt
+
+    def test_long_trip_includes_westward_direction(self):
+        # Coast-to-coast return — diff > 2°, direction hint should fire
+        locations = [{"name": "Alice", "label": "NYC Visit",
+                      "traveling": True, "travel_day": True,
+                      "from_label": "NYC", "to_label": "Denver",
+                      "from_lng": -74.0, "to_lng": -105.0,
+                      "transport_mode": "flying"}]
+        prompt = build_map_prompt(locations)
+        assert "westward" in prompt
+        assert "toward Denver" in prompt
 
     def test_non_travel_day_traveling(self):
         locations = [{"name": "Alice", "label": "Paris",
