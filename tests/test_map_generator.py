@@ -40,9 +40,7 @@ class TestBuildMapPrompt:
                       "from_label": "Chicago", "to_label": "Paris",
                       "transport_mode": "flying"}]
         prompt = build_map_prompt(locations)
-        assert "flying" in prompt
-        assert "Chicago" in prompt
-        assert "Paris" in prompt
+        assert "Alice is traveling from Chicago to Paris by plane" in prompt
 
     def test_travel_day_driving(self):
         locations = [{"name": "Bob", "label": "Nashville",
@@ -50,7 +48,7 @@ class TestBuildMapPrompt:
                       "from_label": "Chicago", "to_label": "Nashville",
                       "transport_mode": "driving"}]
         prompt = build_map_prompt(locations)
-        assert "driving" in prompt
+        assert "Bob is traveling from Chicago to Nashville by car" in prompt
 
     def test_return_travel_day_swaps_from_to(self):
         # On a return day, from = trip destination, to = home

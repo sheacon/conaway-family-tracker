@@ -24,25 +24,19 @@ def build_map_prompt(locations: list[dict]) -> str:
         if travel_day and members[0].get("traveling"):
             from_label = members[0].get("from_label", "Home")
             mode = members[0].get("transport_mode", "flying")
-            mode_verb = {
-                "flying": "flying",
-                "driving": "driving",
-                "train": "taking a train",
-                "boat": "taking a boat",
-            }.get(mode, "traveling")
-            mode_icon = {
-                "flying": "a plane",
-                "driving": "a car",
-                "train": "a train",
-                "boat": "a boat",
-            }.get(mode, "a vehicle")
+            mode_word = {
+                "flying": "plane",
+                "driving": "car",
+                "train": "train",
+                "boat": "boat",
+            }.get(mode)
+            mode_suffix = f" by {mode_word}" if mode_word else ""
             to_label = members[0].get("to_label") or label
             trip_title = label if label != to_label else None
             verb = "are" if len(members) > 1 else "is"
             title_note = f" (for a {trip_title})" if trip_title else ""
             sentences.append(
-                f"{names} {verb} {mode_verb} from {from_label} to {to_label}{title_note}. "
-                f"Show {mode_icon} between {from_label} and {to_label} with a dashed travel line."
+                f"{names} {verb} traveling from {from_label} to {to_label}{mode_suffix}{title_note}."
             )
         else:
             sentences.append(
