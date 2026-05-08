@@ -32,11 +32,9 @@ def build_map_prompt(locations: list[dict]) -> str:
             }.get(mode)
             mode_suffix = f" by {mode_word}" if mode_word else ""
             to_label = members[0].get("to_label") or label
-            trip_title = label if label != to_label else None
             verb = "are" if len(members) > 1 else "is"
-            title_note = f" (for a {trip_title})" if trip_title else ""
             sentences.append(
-                f"{names} {verb} traveling from {from_label} to {to_label}{mode_suffix}{title_note}."
+                f"{names} {verb} traveling from {from_label} to {to_label}{mode_suffix}."
             )
         else:
             sentences.append(
@@ -47,12 +45,10 @@ def build_map_prompt(locations: list[dict]) -> str:
 
     location_text = " ".join(sentences)
     prompt = (
-        f"Create a 3:2 cartoon illustrated map titled 'Conaway Family Map'. "
+        f"Create a cartoon illustrated map titled 'Conaway Family Map'. "
         f"{location_text} "
-        f"Place recognizable cartoon versions of each person at their location "
-        f"on the map, matching the labeled reference photo provided. "
-        f"Double-check the geographic accuracy of all city and location placements — "
-        f"make sure each city is positioned correctly relative to other cities and landmarks."
+        f"Place cartoon versions of each person at their location, "
+        f"matching the labeled reference photo."
     )
     return prompt
 
