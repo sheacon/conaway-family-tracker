@@ -1,5 +1,7 @@
 name: Daily trip notifications
 
+# Keep-alive: touched 2026-07-02 to reset GitHub's 60-day scheduled-workflow inactivity timer.
+
 on:
   schedule:
     - cron: "0 12 * * *" # 8 AM EDT (12 PM UTC)
