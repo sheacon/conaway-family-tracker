@@ -1,4 +1,3 @@
-import base64
 import logging
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -131,28 +130,23 @@ def _trip_html(heading, trip):
     return html
 
 
-def _get_map_attachment() -> dict | None:
-    """Read the cached map PNG and return a Resend attachment dict, or None."""
-    from app.map_generator import _cache_paths
+def _map_image_url() -> str | None:
+    """Return the public URL of the map image, or None if no map is cached.
 
-    image_path, _ = _cache_paths()
-    if not image_path.exists():
+    Served over HTTPS rather than embedded as a cid: attachment — webmail
+    clients (Gmail) do not reliably resolve cid: references. The ?v= content
+    hash busts Gmail's image-proxy cache when the map regenerates.
+    """
+    from app.map_generator import map_token, map_version
+
+    version = map_version()
+    if version is None:
         return None
-    try:
-        data = image_path.read_bytes()
-        return {
-            "filename": "family-map.png",
-            "content": base64.b64encode(data).decode("utf-8"),
-            "content_type": "image/png",
-            "content_id": "family-map",
-        }
-    except Exception:
-        logger.exception("Failed to read map image for email attachment")
-        return None
+    return f"{BASE_URL}/map/{map_token()}.jpg?v={version}"
 
 
-def _dashboard_html() -> tuple[str, dict | None]:
-    """Generate dashboard HTML for email and optional map attachment."""
+def _dashboard_html() -> str:
+    """Generate dashboard HTML for email."""
     from app.trips import _current_locations
 
     html = "<hr>"
@@ -233,10 +227,13 @@ def _dashboard_html() -> tuple[str, dict | None]:
         html += "</tbody></table>"
 
     # --- Family Map ---
-    map_attachment = _get_map_attachment()
-    if map_attachment:
+    map_url = _map_image_url()
+    if map_url:
         html += "<h3>Family Map</h3>"
-        html += '<img src="cid:family-map" alt="Conaway Family Map" style="width: 100%; max-width: 600px;">'
+        html += (
+            f'<img src="{map_url}" alt="Conaway Family Map" '
+            f'width="600" style="width: 100%; max-width: 600px;">'
+        )
 
     # --- Current Locations ---
     locations = _current_locations()
@@ -301,16 +298,13 @@ def _dashboard_html() -> tuple[str, dict | None]:
             html += "</tbody>"
         html += "</table>"
 
-    return html, map_attachment
+    return html
 
 
 def _notify(subject: str, heading: str, trip, notification_type: str | None = None):
     """Build trip-specific + dashboard HTML and send email."""
-    trip_html = _trip_html(heading, trip)
-    dashboard_html, map_attachment = _dashboard_html()
-    full_html = trip_html + dashboard_html
-    attachments = [map_attachment] if map_attachment else None
-    _send_email(subject, full_html, attachments=attachments, notification_type=notification_type)
+    full_html = _trip_html(heading, trip) + _dashboard_html()
+    _send_email(subject, full_html, notification_type=notification_type)
 
 
 def notify_trip_created(trip):
@@ -348,14 +342,11 @@ def send_test_notification(recipient_email: str) -> bool:
     try:
         heading_html = "<h2>Test Notification</h2>"
         heading_html += "<p>This is a test email from the Conaway Family Tracker.</p>"
-        dashboard_html, map_attachment = _dashboard_html()
-        full_html = heading_html + dashboard_html
-        attachments = [map_attachment] if map_attachment else None
+        full_html = heading_html + _dashboard_html()
         _send_email_to(
             [recipient_email],
             "Test Notification — Conaway Family Tracker",
             full_html,
-            attachments=attachments,
         )
         return True
     except Exception:

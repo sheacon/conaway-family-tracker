@@ -1,10 +1,14 @@
 import hashlib
+import hmac
 import logging
 from pathlib import Path
 
 from flask import current_app
 
 logger = logging.getLogger(__name__)
+
+EMAIL_IMAGE_WIDTH = 1024
+EMAIL_IMAGE_QUALITY = 70
 
 
 def build_map_prompt(locations: list[dict]) -> str:
@@ -83,6 +87,72 @@ def _cache_paths() -> tuple[Path, Path]:
     return cache / "map_cache.png", cache / "map_cache.hash"
 
 
+def _email_image_path() -> Path:
+    """Return the path of the compressed JPEG served to email clients."""
+    png_path, _ = _cache_paths()
+    return png_path.with_name("map_cache_email.jpg")
+
+
+def map_token() -> str:
+    """Return the stable, unguessable path token for the public map URL.
+
+    Derived from SECRET_KEY rather than the map contents so that previously
+    sent emails keep resolving after the map regenerates.
+    """
+    secret = current_app.config["SECRET_KEY"].encode()
+    return hmac.new(secret, b"map-image", hashlib.sha256).hexdigest()[:16]
+
+
+def map_version() -> str | None:
+    """Return a short content version for cache-busting, or None if no map."""
+    image_path, hash_path = _cache_paths()
+    if not image_path.exists():
+        return None
+    if hash_path.exists():
+        return hash_path.read_text().strip()
+    # Caches written before the hash file existed
+    return hashlib.sha256(image_path.read_bytes()).hexdigest()[:16]
+
+
+def write_email_image() -> Path | None:
+    """Derive the compressed JPEG used in emails from the cached PNG."""
+    png_path, _ = _cache_paths()
+    if not png_path.exists():
+        return None
+    jpg_path = _email_image_path()
+    try:
+        from PIL import Image
+
+        with Image.open(png_path) as im:
+            im = im.convert("RGB")  # JPEG has no alpha channel
+            width, height = im.size
+            if width > EMAIL_IMAGE_WIDTH:
+                new_height = round(height * EMAIL_IMAGE_WIDTH / width)
+                im = im.resize((EMAIL_IMAGE_WIDTH, new_height), Image.LANCZOS)
+            im.save(
+                jpg_path,
+                "JPEG",
+                quality=EMAIL_IMAGE_QUALITY,
+                optimize=True,
+                progressive=True,
+            )
+        return jpg_path
+    except Exception:
+        logger.exception("Failed to derive email JPEG from %s", png_path)
+        return None
+
+
+def get_email_image() -> Path | None:
+    """Return the email JPEG, deriving it if missing or older than the PNG."""
+    png_path, _ = _cache_paths()
+    if not png_path.exists():
+        return None
+    jpg_path = _email_image_path()
+    if jpg_path.exists() and jpg_path.stat().st_mtime >= png_path.stat().st_mtime:
+        return jpg_path
+    return write_email_image()
+
+
 def generate_map_image(prompt: str, reference_image_path: str) -> bytes | None:
     """Call the OpenAI API to generate a cartoon map image.
 
@@ -144,6 +214,7 @@ def get_or_generate_map(locations: list[dict], force: bool = False) -> Path | No
     if image_bytes:
         image_path.write_bytes(image_bytes)
         hash_path.write_text(current_hash)
+        write_email_image()
         logger.info("Map image generated and cached at %s", image_path)
         return image_path
 

@@ -7,7 +7,7 @@ instance/
 .env
 dist/
 *.egg-info/
-map_cache.*
+map_cache*
 .DS_Store
 app/static/family_reference.png
 seed_data.json

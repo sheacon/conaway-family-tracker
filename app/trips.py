@@ -1,3 +1,4 @@
+import hmac
 from collections import OrderedDict
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -232,6 +233,26 @@ def map_image():
         from flask import abort
         abort(404)
     return send_file(image_path, mimetype="image/png")
+
+
+@bp.route("/map/<token>.jpg")
+def public_map_image(token):
+    """Serve the compressed map to email clients — deliberately unauthenticated.
+
+    Email image proxies (Gmail's in particular) fetch without a session, so this
+    cannot be login-protected. The token is an unguessable HMAC of SECRET_KEY.
+    """
+    from flask import abort
+    from app.map_generator import get_email_image, map_token
+
+    if not hmac.compare_digest(token.encode(), map_token().encode()):
+        abort(404)
+    image_path = get_email_image()
+    if image_path is None:
+        abort(404)
+    resp = send_file(image_path, mimetype="image/jpeg")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 @bp.route("/trips")

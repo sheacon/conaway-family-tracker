@@ -251,6 +251,48 @@ class TestMapImageRoute:
         assert resp.status_code == 200
 
 
+class TestPublicMapImageRoute:
+    """The email-facing map route: must serve without a session.
+
+    Gmail's image proxy fetches unauthenticated, so a redirect to /login here
+    is exactly what leaves the map broken in email clients.
+    """
+
+    def _png(self, tmp_path, size=(1536, 1024)):
+        from PIL import Image
+        img = tmp_path / "map_cache.png"
+        Image.new("RGB", size, (120, 160, 200)).save(img, "PNG")
+        return img
+
+    def test_serves_without_auth(self, app, client, tmp_path):
+        from app.map_generator import map_token
+        img = self._png(tmp_path)
+        with app.app_context():
+            token = map_token()
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            resp = client.get(f"/map/{token}.jpg")
+        assert resp.status_code == 200
+        assert resp.mimetype == "image/jpeg"
+        assert "max-age" in resp.headers["Cache-Control"]
+
+    def test_rejects_wrong_token(self, app, client, tmp_path):
+        img = self._png(tmp_path)
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            resp = client.get("/map/deadbeef00000000.jpg")
+        assert resp.status_code == 404
+
+    def test_404_when_no_image(self, app, client, tmp_path):
+        from app.map_generator import map_token
+        with app.app_context():
+            token = map_token()
+        with patch("app.map_generator._cache_paths",
+                   return_value=(tmp_path / "nope.png", tmp_path / "h")):
+            resp = client.get(f"/map/{token}.jpg")
+        assert resp.status_code == 404
+
+
 class TestTripList:
     @freeze_time("2026-06-03 12:00:00", tz_offset=0)
     def test_shows_upcoming_trips(self, auth_client, make_trip):

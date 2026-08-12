@@ -163,7 +163,7 @@ class TestDashboardHtml:
     @freeze_time("2026-06-01 12:00:00", tz_offset=0)
     def test_includes_action_links(self, app):
         from app.email import _dashboard_html
-        html, _ = _dashboard_html()
+        html = _dashboard_html()
         assert "/trips/new" in html
         assert "/trips" in html
 
@@ -173,7 +173,7 @@ class TestDashboardHtml:
         p = make_person(name="Alice")
         make_trip(destination="Tokyo", start_date=date(2026, 6, 10),
                   end_date=date(2026, 6, 15), people=[p])
-        html, _ = _dashboard_html()
+        html = _dashboard_html()
         assert "Tokyo" in html
         assert "Alice" in html
 
@@ -181,29 +181,54 @@ class TestDashboardHtml:
     def test_includes_current_locations(self, app, make_person):
         from app.email import _dashboard_html
         make_person(name="Bob", location_label="Chicago")
-        html, _ = _dashboard_html()
+        html = _dashboard_html()
         assert "Bob" in html
         assert "Chicago" in html
 
 
-class TestGetMapAttachment:
+class TestMapImageUrl:
     def test_returns_none_when_no_image(self, app, tmp_path):
-        from app.email import _get_map_attachment
+        from app.email import _map_image_url
         with patch("app.map_generator._cache_paths",
                    return_value=(tmp_path / "missing.png", tmp_path / "h")):
-            result = _get_map_attachment()
-        assert result is None
+            assert _map_image_url() is None
 
-    def test_returns_attachment_when_image_exists(self, app, tmp_path):
-        from app.email import _get_map_attachment
+    def test_returns_url_with_token_and_version(self, app, tmp_path):
+        from app.email import BASE_URL, _map_image_url
+        from app.map_generator import map_token
+        img = tmp_path / "map.png"
+        img.write_bytes(b"\x89PNG fake")
+        hash_file = tmp_path / "map.hash"
+        hash_file.write_text("abc123\n")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, hash_file)):
+            url = _map_image_url()
+            assert url == f"{BASE_URL}/map/{map_token()}.jpg?v=abc123"
+
+    def test_version_falls_back_to_content_hash(self, app, tmp_path):
+        """Caches written before map_cache.hash existed still get a version."""
+        from app.email import _map_image_url
         img = tmp_path / "map.png"
         img.write_bytes(b"\x89PNG fake")
         with patch("app.map_generator._cache_paths",
-                   return_value=(img, tmp_path / "h")):
-            result = _get_map_attachment()
-        assert result is not None
-        assert result["filename"] == "family-map.png"
-        assert result["content_type"] == "image/png"
+                   return_value=(img, tmp_path / "missing.hash")):
+            url = _map_image_url()
+        assert url is not None
+        assert "?v=" in url
+        assert not url.endswith("?v=")
+
+    def test_dashboard_html_uses_url_not_cid(self, app, tmp_path):
+        from app.email import _dashboard_html
+        img = tmp_path / "map.png"
+        img.write_bytes(b"\x89PNG fake")
+        hash_file = tmp_path / "map.hash"
+        hash_file.write_text("abc123")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, hash_file)):
+            html = _dashboard_html()
+        assert "cid:" not in html
+        assert "/map/" in html
+        assert ".jpg?v=abc123" in html
 
 
 class TestNotifyFunctions:

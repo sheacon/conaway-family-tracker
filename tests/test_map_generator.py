@@ -175,3 +175,100 @@ class TestGenerateMapImage:
         from app.map_generator import generate_map_image
         result = generate_map_image("test prompt", "/fake/path.png")
         assert result is None
+
+
+class TestEmailImage:
+    """The compressed JPEG derivative served to email clients."""
+
+    def _make_png(self, path, size=(1536, 1024)):
+        from PIL import Image
+        Image.new("RGB", size, (200, 120, 60)).save(path, "PNG")
+        return path
+
+    def test_downscales_and_compresses(self, app, tmp_path):
+        from PIL import Image
+        from app.map_generator import EMAIL_IMAGE_WIDTH, write_email_image
+        img = self._make_png(tmp_path / "map_cache.png")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            jpg = write_email_image()
+        assert jpg is not None and jpg.suffix == ".jpg"
+        with Image.open(jpg) as out:
+            assert out.format == "JPEG"
+            assert out.size == (EMAIL_IMAGE_WIDTH, 683)  # 3:2 preserved
+        assert jpg.stat().st_size < img.stat().st_size
+
+    def test_does_not_upscale_small_images(self, app, tmp_path):
+        from PIL import Image
+        from app.map_generator import write_email_image
+        img = self._make_png(tmp_path / "map_cache.png", size=(400, 300))
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            jpg = write_email_image()
+        with Image.open(jpg) as out:
+            assert out.size == (400, 300)
+
+    def test_returns_none_when_no_png(self, app, tmp_path):
+        from app.map_generator import write_email_image
+        with patch("app.map_generator._cache_paths",
+                   return_value=(tmp_path / "missing.png", tmp_path / "h")):
+            assert write_email_image() is None
+
+    def test_handles_unreadable_png(self, app, tmp_path):
+        from app.map_generator import write_email_image
+        img = tmp_path / "map_cache.png"
+        img.write_bytes(b"not actually a png")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            assert write_email_image() is None
+
+    def test_get_email_image_rederives_when_png_is_newer(self, app, tmp_path):
+        import os
+        from app.map_generator import _email_image_path, get_email_image
+        img = self._make_png(tmp_path / "map_cache.png")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            first = get_email_image()
+            stale = b"stale jpeg bytes"
+            first.write_bytes(stale)
+            # Mark the JPEG as older than the PNG
+            png_mtime = img.stat().st_mtime
+            os.utime(first, (png_mtime - 60, png_mtime - 60))
+            second = get_email_image()
+            assert second == _email_image_path()
+            assert second.read_bytes() != stale
+
+    def test_get_email_image_reuses_current_derivative(self, app, tmp_path):
+        from app.map_generator import get_email_image
+        img = self._make_png(tmp_path / "map_cache.png")
+        with patch("app.map_generator._cache_paths",
+                   return_value=(img, tmp_path / "map_cache.hash")):
+            first = get_email_image()
+            marker = first.stat().st_mtime_ns
+            again = get_email_image()
+        assert again.stat().st_mtime_ns == marker
+
+
+class TestMapTokenAndVersion:
+    def test_token_is_stable_and_secret_derived(self, app, tmp_path):
+        from app.map_generator import map_token
+        first = map_token()
+        assert first == map_token()
+        assert len(first) == 16
+        app.config["SECRET_KEY"] = "a-different-secret"
+        assert map_token() != first
+
+    def test_version_none_without_image(self, app, tmp_path):
+        from app.map_generator import map_version
+        with patch("app.map_generator._cache_paths",
+                   return_value=(tmp_path / "missing.png", tmp_path / "h")):
+            assert map_version() is None
+
+    def test_version_uses_hash_file(self, app, tmp_path):
+        from app.map_generator import map_version
+        img = tmp_path / "map_cache.png"
+        img.write_bytes(b"\x89PNG")
+        hash_file = tmp_path / "map_cache.hash"
+        hash_file.write_text("cafebabe12345678\n")
+        with patch("app.map_generator._cache_paths", return_value=(img, hash_file)):
+            assert map_version() == "cafebabe12345678"
